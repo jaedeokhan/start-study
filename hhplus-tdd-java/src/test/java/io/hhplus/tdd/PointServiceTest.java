@@ -34,34 +34,66 @@ public class PointServiceTest {
     @Test
     void 사용자_포인트_조회_테스트(){
         // given
-        long mockUser = 1L;
+        long mockUserId = 1L;
         long mockPoint = 1000;
-        UserPoint mockUserPoint = new UserPoint(mockUser, mockPoint, System.currentTimeMillis());
+        UserPoint mockUserPoint = new UserPoint(mockUserId, mockPoint, System.currentTimeMillis());
         when(userPointTable.selectById(1L)).thenReturn(mockUserPoint);
 
         // when
-        UserPoint userPoint = pointService.getPointById(mockUser);
+        UserPoint userPoint = pointService.getPointById(mockUserId);
 
         // then
         assertThat(userPoint).isNotNull();
-        assertThat(userPoint.id()).isEqualTo(mockUser);
+        assertThat(userPoint.id()).isEqualTo(mockUserId);
         assertThat(userPoint.point()).isEqualTo(mockPoint);
     }
 
     @Test
-    void 존재하지않는_사용자_포인트_조회_테스트() {
+    void 실패_존재하지않는_사용자_포인트_조회_테스트() {
         // given
-        long mockUser = 0L;
+        long mockUserId = 0L;
         long mockPoint = 0;
-        UserPoint mockUserPoint = UserPoint.empty(mockUser);
-        when(userPointTable.selectById(mockUser)).thenReturn(mockUserPoint);
+        UserPoint mockUserPoint = UserPoint.empty(mockUserId);
+        when(userPointTable.selectById(mockUserId)).thenReturn(mockUserPoint);
 
         // when
-        UserPoint userPoint = pointService.getPointById(mockUser);
+        UserPoint userPoint = pointService.getPointById(mockUserId);
 
         // then
         assertThat(userPoint).isNotNull();
-        assertThat(userPoint.id()).isEqualTo(mockUser);
+        assertThat(userPoint.id()).isEqualTo(mockUserId);
         assertThat(userPoint.point()).isEqualTo(mockPoint);
+    }
+
+    @Test
+    void 포인트_내역_조회_테스트() {
+        // given
+        long mockUserId = 1L;
+        List<PointHistory> mockPointHistoryList = List.of(
+                new PointHistory(1, mockUserId, 2000, TransactionType.CHARGE, System.currentTimeMillis()),
+                new PointHistory(2, mockUserId, 500, TransactionType.CHARGE, System.currentTimeMillis()),
+                new PointHistory(3, mockUserId, 1500, TransactionType.USE, System.currentTimeMillis())
+        );
+        when(pointHistoryTable.selectAllByUserId(mockUserId)).thenReturn(mockPointHistoryList);
+
+        // when
+        List<PointHistory> histories = pointService.getHistoriesById(mockUserId);
+
+        // then
+        assertThat(histories.size()).isEqualTo(3);
+    }
+
+    @Test
+    void 실패_존재하지않는_사용자의_포인트_내역_조회_테스트() {
+        // given
+        long mockUserId = 0L;
+        List<PointHistory> mockPointHistoryList = List.of();
+        when(pointHistoryTable.selectAllByUserId(mockUserId)).thenReturn(mockPointHistoryList);
+
+        // when
+        List<PointHistory> histories = pointService.getHistoriesById(mockUserId);
+
+        // then
+        assertThat(histories.size()).isEqualTo(0);
     }
 }
