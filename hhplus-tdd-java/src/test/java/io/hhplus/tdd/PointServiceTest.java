@@ -6,18 +6,18 @@ import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.PointService;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.awt.*;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class PointServiceTest {
@@ -32,7 +32,7 @@ public class PointServiceTest {
     private PointService pointService;
 
     @Test
-    void 사용자_포인트_조회_테스트(){
+    void 사용자_포인트_조회_테스트() {
         // given
         long userId = 1L;
         long point = 1000;
@@ -52,7 +52,6 @@ public class PointServiceTest {
     void 실패_존재하지않는_사용자_포인트_조회_테스트() {
         // given
         long userId = 0L;
-        long mockPoint = 0;
         UserPoint mockUserPoint = UserPoint.empty(userId);
         when(userPointTable.selectById(userId)).thenReturn(mockUserPoint);
 
@@ -71,7 +70,7 @@ public class PointServiceTest {
         long userId = 1L;
         List<PointHistory> mockPointHistoryList = List.of(
                 new PointHistory(1, userId, 2000, TransactionType.CHARGE, System.currentTimeMillis()),
-                new PointHistory(2, userId, 500,  TransactionType.CHARGE, System.currentTimeMillis()),
+                new PointHistory(2, userId, 500, TransactionType.CHARGE, System.currentTimeMillis()),
                 new PointHistory(3, userId, 1500, TransactionType.USE, System.currentTimeMillis())
         );
         when(pointHistoryTable.selectAllByUserId(userId)).thenReturn(mockPointHistoryList);
@@ -97,8 +96,16 @@ public class PointServiceTest {
         assertThat(histories.size()).isEqualTo(0);
     }
 
-    @Test
-    void 포인트_충전_테스트() {
-//        UserPoint userPoint = new UserPoint();
+    @ParameterizedTest(name = "{0}원 충전 시 금액 {0}원 증가한다.")
+    @ValueSource(ints = {1200, 1500})
+    void 포인트_충전_정상_증가_테스트(int amount) {
+        // given
+        UserPoint userPoint = UserPoint.empty(1L);
+
+        // when
+        UserPoint chargedUserPoint = userPoint.charge(amount);
+
+        // then
+        assertThat(chargedUserPoint.point()).isEqualTo(amount);
     }
 }
