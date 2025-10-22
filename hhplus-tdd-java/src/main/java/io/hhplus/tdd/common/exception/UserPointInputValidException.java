@@ -7,7 +7,7 @@ public class UserPointInputValidException extends RuntimeException {
 
     public UserPointInputValidException(String message) {
         super(message);
-        this.code = String.valueOf(HttpStatus.BAD_REQUEST.value()); // default error code : 400
+        this.code = HttpStatus.BAD_REQUEST + ""; // default error code : 400
     }
 
     public UserPointInputValidException(String message, String code) {

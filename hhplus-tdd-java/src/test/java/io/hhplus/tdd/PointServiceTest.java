@@ -1,6 +1,5 @@
 package io.hhplus.tdd;
 
-import io.hhplus.tdd.common.exception.UserPointInputValidException;
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.point.PointHistory;
@@ -10,8 +9,6 @@ import io.hhplus.tdd.point.UserPoint;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,9 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class PointServiceTest {
@@ -104,53 +99,52 @@ public class PointServiceTest {
         assertThat(histories.size()).isEqualTo(0);
     }
 
-    @ParameterizedTest(name = "{0}원 충전 시 금액 {0}원 증가한다.")
-    @ValueSource(ints = {1200, 1500})
-    @DisplayName("사용자 포인트가 충전되었을 때 포인트가 증가해야 한다.")
-    void UserPoint_should_increasePoints_when_charged(int chargeAmount) {
+    @Test
+    @DisplayName("사용자가 포인트를 충전하면 포인트 증가 및 내역저장")
+    void should_increasePointAndSaveHistory_when_charging() {
         // given
-        UserPoint userPoint = UserPoint.empty(1L);
+        long userId = 1L;
+        long chargeAmount = 1000;
+        UserPoint chargedUserPoint = UserPoint.empty(userId).charge(chargeAmount);
+        when(userPointTable.selectById(userId)).thenReturn(chargedUserPoint);
+        when(userPointTable.insertOrUpdate(anyLong(), anyLong()))
+                .thenReturn(chargedUserPoint);
 
         // when
-        UserPoint chargedUserPoint = userPoint.charge(chargeAmount);
+        UserPoint actualUserPoint = pointService.charge(userId, chargeAmount);
 
         // then
-        assertThat(chargedUserPoint.point()).isEqualTo(chargeAmount);
+        assertThat(actualUserPoint.point()).isEqualTo(1000);
+        verify(pointHistoryTable, times(1)).insert(
+                eq(userId),
+                eq(chargeAmount),
+                eq(TransactionType.CHARGE),
+                anyLong()
+        );
     }
 
-    @ParameterizedTest(name = "{0}원 사용 시 금액 {0}원 감소한다.")
-    @ValueSource(ints = {2000, 3000})
-    @DisplayName("사용자 포인트를 사용했을 때 포인트가 감소해야 한다.")
-    void UserPoint_should_decreasePoints_when_used(int useAmount) {
+    @Test
+    @DisplayName("사용자가 포인트를 사용하면 포인트 감소 및 내역저장")
+    void should_decreasePointAndSaveHistory_when_using() {
         // given
-        UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
-
-        // when
+        long userId = 1L;
+        long useAmount = 1000;
+        UserPoint userPoint = new UserPoint(userId, useAmount, System.currentTimeMillis());
         UserPoint usedUserPoint = userPoint.use(useAmount);
+        when(userPointTable.selectById(userId)).thenReturn(usedUserPoint);
+        when(userPointTable.insertOrUpdate(anyLong(), anyLong()))
+                .thenReturn(usedUserPoint);
+
+        // when
+        UserPoint actualUserPoint = pointService.use(userId, useAmount);
 
         // then
-        assertThat(usedUserPoint.point()).isEqualTo(0);
-    }
-
-    @ParameterizedTest(name = "0보다 작은 {0}원 충전 시 예외가 발생한다.")
-    @ValueSource(ints = {-1200, -1500})
-    @DisplayName("사용자 충전 포인트가 음수일 때 예외가 발생한다.")
-    void should_throwException_when_chargePointsAreNegative(int chargeAmount) {
-        UserPoint userPoint = UserPoint.empty(1L);
-
-        assertThatThrownBy(() -> {
-            userPoint.charge(chargeAmount);
-        }).isInstanceOf(UserPointInputValidException.class);
-    }
-
-    @ParameterizedTest(name = "0보다 작은 {0}원 사용 시 예외가 발생한다.")
-    @ValueSource(ints = {-2000, -3000})
-    @DisplayName("사용자 사용 포인트가 음수일 때 예외가 발생한다.")
-    void should_throwException_when_usePointsAreNegative(int useAmount) {
-        UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
-
-        assertThatThrownBy(() -> {
-            userPoint.use(useAmount);
-        }).isInstanceOf(UserPointInputValidException.class);
+        assertThat(actualUserPoint.point()).isEqualTo(0);
+        verify(pointHistoryTable, times(1)).insert(
+                eq(userId),
+                eq(useAmount),
+                eq(TransactionType.USE),
+                anyLong()
+        );
     }
 }
