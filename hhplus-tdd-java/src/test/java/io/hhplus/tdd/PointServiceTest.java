@@ -6,6 +6,8 @@ import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.PointService;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
+import org.apache.catalina.User;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,7 +35,8 @@ public class PointServiceTest {
     private PointService pointService;
 
     @Test
-    void 사용자_포인트_조회_테스트() {
+    @DisplayName("사용자가 존재할 때 사용자 포인트를 반환해야 한다.")
+    void should_returnUserPoint_when_userExists() {
         // given
         long userId = 1L;
         long point = 1000;
@@ -49,7 +53,8 @@ public class PointServiceTest {
     }
 
     @Test
-    void 실패_존재하지않는_사용자_포인트_조회_테스트() {
+    @DisplayName("사용자가 존재하지 않을 때 사용자 포인트 빈 객체를 반환해야 한다.")
+    void should_returnEmptyUserPoint_when_userDoesNotExist() {
         // given
         long userId = 0L;
         UserPoint mockUserPoint = UserPoint.empty(userId);
@@ -65,7 +70,8 @@ public class PointServiceTest {
     }
 
     @Test
-    void 포인트_내역_조회_테스트() {
+    @DisplayName("사용자가 포인트 내역이 존재할 때 포인트 내역 리스트를 반환해야 한다.")
+    void should_returnPointHistories_when_userHasPointHistory() {
         // given
         long userId = 1L;
         List<PointHistory> mockPointHistoryList = List.of(
@@ -83,7 +89,8 @@ public class PointServiceTest {
     }
 
     @Test
-    void 실패_존재하지않는_사용자의_포인트_내역_조회_테스트() {
+    @DisplayName("사용자가 포인트 내역이 없을 때 빈 리스트를 반환해야 한다.")
+    void should_returnEmptyList_when_userHasNoPointHistories() {
         // given
         long userId = 0L;
         List<PointHistory> mockPointHistoryList = List.of();
@@ -98,7 +105,8 @@ public class PointServiceTest {
 
     @ParameterizedTest(name = "{0}원 충전 시 금액 {0}원 증가한다.")
     @ValueSource(ints = {1200, 1500})
-    void 포인트_충전_정상_증가_테스트(int amount) {
+    @DisplayName("사용자 포인트가 충전되었을 때 포인트가 증가해야 한다.")
+    void UserPoint_should_increasePoints_when_charged(int amount) {
         // given
         UserPoint userPoint = UserPoint.empty(1L);
 
@@ -107,5 +115,18 @@ public class PointServiceTest {
 
         // then
         assertThat(chargedUserPoint.point()).isEqualTo(amount);
+    }
+
+    @Test
+    @DisplayName("사용자 포인트를 사용했을 때 포인트가 감소해야 한다.")
+    void UserPoint_should_decreasePoints_when_used() {
+        // given
+        UserPoint userPoint = new UserPoint(1L, 1000, System.currentTimeMillis());
+
+        // when
+        UserPoint usedUserPoint = userPoint.use(1000);
+
+        // then
+        assertThat(usedUserPoint.point()).isEqualTo(0);
     }
 }
