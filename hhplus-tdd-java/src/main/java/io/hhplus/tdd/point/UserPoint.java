@@ -10,7 +10,11 @@ public record UserPoint(
         return new UserPoint(id, 0, System.currentTimeMillis());
     }
 
-    public UserPoint charge(long amount) {
-        return new UserPoint(this.id, this.point + amount, System.currentTimeMillis());
+    public UserPoint charge(long chargeAmount) {
+        return new UserPoint(this.id, this.point + chargeAmount, System.currentTimeMillis());
+    }
+
+    public UserPoint use(long useAmount) {
+        return new UserPoint(this.id, this.point - useAmount, System.currentTimeMillis());
     }
 }
