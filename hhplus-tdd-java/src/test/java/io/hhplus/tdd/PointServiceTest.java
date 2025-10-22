@@ -1,12 +1,12 @@
 package io.hhplus.tdd;
 
+import io.hhplus.tdd.common.exception.UserPointInputValidException;
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.PointService;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
-import org.apache.catalina.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -129,5 +130,27 @@ public class PointServiceTest {
 
         // then
         assertThat(usedUserPoint.point()).isEqualTo(0);
+    }
+
+    @ParameterizedTest(name = "0보다 작은 {0}원 충전 시 예외가 발생한다.")
+    @ValueSource(ints = {-1200, -1500})
+    @DisplayName("사용자 충전 포인트가 음수일 때 예외가 발생한다.")
+    void should_throwException_when_chargePointsAreNegative(int chargeAmount) {
+        UserPoint userPoint = UserPoint.empty(1L);
+
+        assertThatThrownBy(() -> {
+            userPoint.charge(chargeAmount);
+        }).isInstanceOf(UserPointInputValidException.class);
+    }
+
+    @ParameterizedTest(name = "0보다 작은 {0}원 사용 시 예외가 발생한다.")
+    @ValueSource(ints = {-2000, -3000})
+    @DisplayName("사용자 사용 포인트가 음수일 때 예외가 발생한다.")
+    void should_throwException_when_usePointsAreNegative(int useAmount) {
+        UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
+
+        assertThatThrownBy(() -> {
+            userPoint.use(useAmount);
+        }).isInstanceOf(UserPointInputValidException.class);
     }
 }
