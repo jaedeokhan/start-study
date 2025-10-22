@@ -106,25 +106,26 @@ public class PointServiceTest {
     @ParameterizedTest(name = "{0}원 충전 시 금액 {0}원 증가한다.")
     @ValueSource(ints = {1200, 1500})
     @DisplayName("사용자 포인트가 충전되었을 때 포인트가 증가해야 한다.")
-    void UserPoint_should_increasePoints_when_charged(int amount) {
+    void UserPoint_should_increasePoints_when_charged(int chargeAmount) {
         // given
         UserPoint userPoint = UserPoint.empty(1L);
 
         // when
-        UserPoint chargedUserPoint = userPoint.charge(amount);
+        UserPoint chargedUserPoint = userPoint.charge(chargeAmount);
 
         // then
-        assertThat(chargedUserPoint.point()).isEqualTo(amount);
+        assertThat(chargedUserPoint.point()).isEqualTo(chargeAmount);
     }
 
-    @Test
+    @ParameterizedTest(name = "{0}원 사용 시 금액 {0}원 감소한다.")
+    @ValueSource(ints = {2000, 3000})
     @DisplayName("사용자 포인트를 사용했을 때 포인트가 감소해야 한다.")
-    void UserPoint_should_decreasePoints_when_used() {
+    void UserPoint_should_decreasePoints_when_used(int useAmount) {
         // given
-        UserPoint userPoint = new UserPoint(1L, 1000, System.currentTimeMillis());
+        UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
 
         // when
-        UserPoint usedUserPoint = userPoint.use(1000);
+        UserPoint usedUserPoint = userPoint.use(useAmount);
 
         // then
         assertThat(usedUserPoint.point()).isEqualTo(0);

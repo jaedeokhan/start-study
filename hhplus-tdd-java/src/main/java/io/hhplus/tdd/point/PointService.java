@@ -3,7 +3,6 @@ package io.hhplus.tdd.point;
 import io.hhplus.tdd.database.PointHistoryTable;
 import io.hhplus.tdd.database.UserPointTable;
 import lombok.RequiredArgsConstructor;
-import org.apache.catalina.User;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,21 +23,29 @@ public class PointService {
         return pointHistories;
     }
 
-    public UserPoint charge(long userId, long amount) {
-        UserPoint chargedUserPoint = userPointTable.selectById(userId).charge(amount);
+    public UserPoint charge(long userId, long chargeAmount) {
+        UserPoint chargedUserPoint = userPointTable.selectById(userId).charge(chargeAmount);
 
         UserPoint savedUserPoint = userPointTable.insertOrUpdate(
                 chargedUserPoint.id(),
                 chargedUserPoint.point()
         );
 
-        pointHistoryTable.insert(userId, amount, TransactionType.CHARGE, System.currentTimeMillis());
+        pointHistoryTable.insert(userId, chargeAmount, TransactionType.CHARGE, System.currentTimeMillis());
 
         return savedUserPoint;
     }
 
-    public UserPoint use() {
+    public UserPoint use(long userId, long useAmount) {
+        UserPoint usedUserPoint = userPointTable.selectById(userId).use(useAmount);
 
-        return new UserPoint(0, 0, 0);
+        UserPoint savedUserPoint = userPointTable.insertOrUpdate(
+                usedUserPoint.id(),
+                usedUserPoint.point()
+        );
+
+        pointHistoryTable.insert(userId, useAmount, TransactionType.USE, System.currentTimeMillis());
+
+        return savedUserPoint;
     }
 }
