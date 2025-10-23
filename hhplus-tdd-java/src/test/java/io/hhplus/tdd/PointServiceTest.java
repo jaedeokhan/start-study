@@ -6,12 +6,9 @@ import io.hhplus.tdd.point.PointHistory;
 import io.hhplus.tdd.point.PointService;
 import io.hhplus.tdd.point.TransactionType;
 import io.hhplus.tdd.point.UserPoint;
-import org.apache.catalina.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,8 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class PointServiceTest {
@@ -35,8 +31,8 @@ public class PointServiceTest {
     private PointService pointService;
 
     @Test
-    @DisplayName("사용자가 존재할 때 사용자 포인트를 반환해야 한다.")
-    void should_returnUserPoint_when_userExists() {
+    @DisplayName("존재하는 사용자의 포인트 조회")
+    void getUserPoint_Success() {
         // given
         long userId = 1L;
         long point = 1000;
@@ -53,8 +49,8 @@ public class PointServiceTest {
     }
 
     @Test
-    @DisplayName("사용자가 존재하지 않을 때 사용자 포인트 빈 객체를 반환해야 한다.")
-    void should_returnEmptyUserPoint_when_userDoesNotExist() {
+    @DisplayName("존재하지 않는 사용자 조회 시 빈 포인트 반환")
+    void getUserPoint_ReturnsEmpty_WhenUserNotFound() {
         // given
         long userId = 0L;
         UserPoint mockUserPoint = UserPoint.empty(userId);
@@ -70,8 +66,8 @@ public class PointServiceTest {
     }
 
     @Test
-    @DisplayName("사용자가 포인트 내역이 존재할 때 포인트 내역 리스트를 반환해야 한다.")
-    void should_returnPointHistories_when_userHasPointHistory() {
+    @DisplayName("포인트 내역 조회 성공")
+    void getPointHistories_Success() {
         // given
         long userId = 1L;
         List<PointHistory> mockPointHistoryList = List.of(
@@ -89,8 +85,8 @@ public class PointServiceTest {
     }
 
     @Test
-    @DisplayName("사용자가 포인트 내역이 없을 때 빈 리스트를 반환해야 한다.")
-    void should_returnEmptyList_when_userHasNoPointHistories() {
+    @DisplayName("포인트 내역이 없을 때 빈 리스트 반환")
+    void getPointHistories_ReturnsEmptyList_WhenNoHistory() {
         // given
         long userId = 0L;
         List<PointHistory> mockPointHistoryList = List.of();
@@ -103,31 +99,53 @@ public class PointServiceTest {
         assertThat(histories.size()).isEqualTo(0);
     }
 
-    @ParameterizedTest(name = "{0}원 충전 시 금액 {0}원 증가한다.")
-    @ValueSource(ints = {1200, 1500})
-    @DisplayName("사용자 포인트가 충전되었을 때 포인트가 증가해야 한다.")
-    void UserPoint_should_increasePoints_when_charged(int chargeAmount) {
+    @Test
+    @DisplayName("포인트 충전 성공 및 내역 저장")
+    void chargePointAndSaveHistory_Success() {
         // given
-        UserPoint userPoint = UserPoint.empty(1L);
+        long userId = 1L;
+        long chargeAmount = 1000;
+        UserPoint chargedUserPoint = UserPoint.empty(userId).charge(chargeAmount);
+        when(userPointTable.selectById(userId)).thenReturn(chargedUserPoint);
+        when(userPointTable.insertOrUpdate(anyLong(), anyLong()))
+                .thenReturn(chargedUserPoint);
 
         // when
-        UserPoint chargedUserPoint = userPoint.charge(chargeAmount);
+        UserPoint actualUserPoint = pointService.charge(userId, chargeAmount);
 
         // then
-        assertThat(chargedUserPoint.point()).isEqualTo(chargeAmount);
+        assertThat(actualUserPoint.point()).isEqualTo(1000);
+        verify(pointHistoryTable, times(1)).insert(
+                eq(userId),
+                eq(chargeAmount),
+                eq(TransactionType.CHARGE),
+                anyLong()
+        );
     }
 
-    @ParameterizedTest(name = "{0}원 사용 시 금액 {0}원 감소한다.")
-    @ValueSource(ints = {2000, 3000})
-    @DisplayName("사용자 포인트를 사용했을 때 포인트가 감소해야 한다.")
-    void UserPoint_should_decreasePoints_when_used(int useAmount) {
+    @Test
+    @DisplayName("포인트 사용 성공 및 내역 저장")
+    void usePointAbdSaveHistory_Success() {
         // given
-        UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
+        long userId = 1L;
+        long amount = 1000;
+        long useAmount = 500;
+        UserPoint userPoint = new UserPoint(userId, amount, System.currentTimeMillis());
+        UserPoint usedUserPoint = userPoint.use(useAmount);
+        when(userPointTable.selectById(userId)).thenReturn(usedUserPoint);
+        when(userPointTable.insertOrUpdate(anyLong(), anyLong()))
+                .thenReturn(usedUserPoint);
 
         // when
-        UserPoint usedUserPoint = userPoint.use(useAmount);
+        UserPoint actualUserPoint = pointService.use(userId, useAmount);
 
         // then
-        assertThat(usedUserPoint.point()).isEqualTo(0);
+        assertThat(actualUserPoint.point()).isEqualTo(useAmount);
+        verify(pointHistoryTable, times(1)).insert(
+                eq(userId),
+                eq(useAmount),
+                eq(TransactionType.USE),
+                anyLong()
+        );
     }
 }
