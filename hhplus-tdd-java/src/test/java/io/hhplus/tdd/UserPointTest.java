@@ -13,10 +13,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class UserPointTest {
 
-    @ParameterizedTest(name = "{0}원 충전 시 금액 {0}원 증가한다.")
+    @ParameterizedTest(name = "{0}원 충전 시 포인트 증가")
     @ValueSource(ints = {1200, 1500})
-    @DisplayName("사용자 포인트가 충전되었을 때 포인트가 증가해야 한다.")
-    void UserPoint_should_increasePoints_when_charged(int chargeAmount) {
+    @DisplayName("포인트 충전 성공")
+    void chargePoint_IncreasesBalance(int chargeAmount) {
         // given
         UserPoint userPoint = UserPoint.empty(1L);
 
@@ -27,10 +27,10 @@ public class UserPointTest {
         assertThat(chargedUserPoint.point()).isEqualTo(chargeAmount);
     }
 
-    @ParameterizedTest(name = "{0}원 사용 시 금액 {0}원 감소한다.")
+    @ParameterizedTest(name = "{0}원 사용 시 포인트 감소")
     @ValueSource(ints = {2000, 3000})
-    @DisplayName("사용자 포인트를 사용했을 때 포인트가 감소해야 한다.")
-    void UserPoint_should_decreasePoints_when_used(int useAmount) {
+    @DisplayName("포인트 사용 성공")
+    void usePoint_DecreasesBalance(int useAmount) {
         // given
         UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
 
@@ -41,10 +41,10 @@ public class UserPointTest {
         assertThat(usedUserPoint.point()).isEqualTo(0);
     }
 
-    @ParameterizedTest(name = "0보다 작은 {0}원 충전 시 예외가 발생한다.")
+    @ParameterizedTest(name = "{0}원 충전 시 예외 발생")
     @ValueSource(ints = {-1200, -1500})
-    @DisplayName("사용자 충전 포인트가 음수일 때 예외가 발생한다.")
-    void should_throwException_when_chargePointsAreNegative(int chargeAmount) {
+    @DisplayName("충전 금액이 최소값 이하일 때 예외 발생")
+    void chargePoint_ThrowsException_WhenAmountBelowMinimum(int chargeAmount) {
         UserPoint userPoint = UserPoint.empty(1L);
 
         assertThatThrownBy(() -> {
@@ -54,10 +54,10 @@ public class UserPointTest {
         .hasMessageContaining(ErrorCode.MIN_AMOUNT_INVALID.getMessage());
     }
 
-    @ParameterizedTest(name = "0보다 작은 {0}원 사용 시 예외가 발생한다.")
+    @ParameterizedTest(name = "{0}원 사용 시 예외 발생")
     @ValueSource(ints = {-2000, -3000})
-    @DisplayName("사용자 사용 포인트가 음수일 때 예외가 발생한다.")
-    void should_throwException_when_usePointsAreNegative(int useAmount) {
+    @DisplayName("사용 금액이 최소값 이하일 때 예외 발생")
+    void usePoint_ThrowsException_WhenAmountBelowMinimum(int useAmount) {
         UserPoint userPoint = new UserPoint(1L, useAmount, System.currentTimeMillis());
 
         assertThatThrownBy(() -> {
@@ -67,10 +67,10 @@ public class UserPointTest {
         .hasMessageContaining(ErrorCode.MIN_AMOUNT_INVALID.getMessage());
     }
 
-    @ParameterizedTest(name = "1_000_000 보다 큰 {0}원 사용 시 예외가 발생한다.")
+    @ParameterizedTest(name = "{0}원 사용 시 예외 발생")
     @ValueSource(ints = {1_000_001, 1_000_002})
-    @DisplayName("사용자 사용 포인트가 1_000_000 보다 크면 예외가 발생한다.")
-    void should_throwException_when_useAmountExceedsMaximum(int amount) {
+    @DisplayName("사용 금액이 최대값 초과 시 예외 발생")
+    void usePoint_ThrowsException_WhenAmountExceedsMaximum(int amount) {
         UserPoint userPoint = new UserPoint(1L, amount, System.currentTimeMillis());
 
         assertThatThrownBy(() -> {
@@ -80,10 +80,10 @@ public class UserPointTest {
         .hasMessageContaining(ErrorCode.MAX_AMOUNT_INVALID.getMessage());
     }
 
-    @ParameterizedTest(name = "100원 단위가 아닌 {0}원 사용 시 예외가 발생한다.")
+    @ParameterizedTest(name = "{0}원 사용 시 예외 발생")
     @ValueSource(ints = {101, 1012})
-    @DisplayName("사용자 사용 포인트가 1_000_000 보다 크면 예외가 발생한다.")
-    void test(int amount) {
+    @DisplayName("사용 금액이 100원 단위가 아닐 때 예외 발생")
+    void usePoint_ThrowsException_WhenAmountNotInValidUnit(int amount) {
         UserPoint userPoint = new UserPoint(1L, amount, System.currentTimeMillis());
 
         assertThatThrownBy(() -> {
@@ -91,4 +91,17 @@ public class UserPointTest {
         }).isInstanceOf(UserPointInputValidException.class)
         .hasMessageContaining(ErrorCode.UNIT_AMOUNT_INVALID.getMessage());
     }
+
+    @Test
+    @DisplayName("사용 금액이 포인트를 초과할 때 예외 발생")
+    void usePoint_ThrowsException_WhenAmountExceedsBalance() {
+        UserPoint userPoint = new UserPoint(1L, 1000, System.currentTimeMillis());
+
+        assertThatThrownBy(() -> {
+            userPoint.use(1100);
+        }).isInstanceOf(UserPointInputValidException.class)
+        .hasMessageContaining(ErrorCode.INSUFFICIENT_BALANCE.getMessage());
+    }
+
+
 }
