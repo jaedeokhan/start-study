@@ -5,9 +5,9 @@ import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
 
-    MIN_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, String.format("금액은 %d보다 커야 합니다.", CommonConstants.MIN_AMOUNT)),
-    MAX_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, String.format("금액은 %d보다 작아야 합니다.", CommonConstants.MAX_AMOUNT)),
-    UNIT_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, String.format("금액은 %d원 단위로만 입력 가능합니다.", CommonConstants.UNIT_AMOUNT)),
+    MIN_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, "금액은 " + CommonConstants.MIN_AMOUNT + "보다 커야 합니다."),
+    MAX_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, "금액은 " + CommonConstants.MAX_AMOUNT + "보다 작아야 합니다."),
+    UNIT_AMOUNT_INVALID(HttpStatus.BAD_REQUEST, "금액은 " + CommonConstants.UNIT_AMOUNT + "원 단위로만 입력 가능합니다."),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "사용할 수 있는 금액이 부족합니다.");
 
     private final HttpStatus status;
