@@ -23,6 +23,7 @@ dependencyManagement {
 
 dependencies {
     implementation(libs.spring.boot.starter.web)
+    implementation(libs.springdoc.openapi)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     annotationProcessor(libs.spring.boot.configuration.processor)
@@ -49,4 +50,18 @@ tasks.getByName("jar") {
 tasks.test {
     ignoreFailures = true
     useJUnitPlatform()
+}
+
+// OpenAPI yaml 생성 태스크
+tasks.register("generateOpenApiYaml") {
+    group = "documentation"
+    description = "Generate OpenAPI YAML specification"
+
+    doLast {
+        println("OpenAPI YAML 파일을 생성하려면 다음 단계를 수행하세요:")
+        println("1. 애플리케이션 실행: ./gradlew bootRun")
+        println("2. 다른 터미널에서 YAML 다운로드:")
+        println("   curl http://localhost:8080/v3/api-docs.yaml -o src/main/resources/static/openapi.yaml")
+        println("3. 생성된 파일 확인: src/main/resources/static/openapi.yaml")
+    }
 }
