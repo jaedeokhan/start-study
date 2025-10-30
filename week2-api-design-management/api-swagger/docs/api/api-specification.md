@@ -849,7 +849,7 @@ GET /api/v1/balance?userId=1
     "couponEventId": 10,
     "userId": 1,
     "couponName": "신규 가입 쿠폰",
-    "discountType": "FIXED_AMOUNT",
+    "discountType": "AMOUNT",
     "discountAmount": 10000,
     "validFrom": "2025-10-29T00:00:00",
     "validUntil": "2025-11-30T23:59:59",
@@ -925,24 +925,28 @@ GET /api/v1/coupons?userId=1&status=AVAILABLE
         "couponId": 123,
         "couponEventId": 10,
         "couponName": "신규 가입 쿠폰",
-        "discountType": "FIXED_AMOUNT",
+        "discountType": "AMOUNT",
         "discountAmount": 10000,
         "validFrom": "2025-10-29T00:00:00",
         "validUntil": "2025-11-30T23:59:59",
         "status": "AVAILABLE",
-        "issuedAt": "2025-10-29T14:30:00"
+        "issuedAt": "2025-10-29T14:30:00",
+        "usedAt": "2025-11-29T14:30:00",
+        "expiresAt": "2025-12-29T14:30:00"
       },
       {
         "couponId": 124,
         "couponEventId": 11,
         "couponName": "첫 구매 10% 할인",
-        "discountType": "PERCENTAGE",
+        "discountType": "RATE",
         "discountRate": 10,
         "maxDiscountAmount": 50000,
         "validFrom": "2025-10-01T00:00:00",
         "validUntil": "2025-10-31T23:59:59",
         "status": "AVAILABLE",
-        "issuedAt": "2025-10-15T10:00:00"
+        "issuedAt": "2025-10-29T14:30:00",
+        "usedAt": "2025-11-29T14:30:00",
+        "expiresAt": "2025-12-29T14:30:00"      
       }
     ],
     "summary": {
@@ -967,13 +971,10 @@ GET /api/v1/coupons?userId=1&status=AVAILABLE
 **설명**: 진행 중인 쿠폰 이벤트 목록을 조회합니다.
 
 **Query Parameters**:
-| 파라미터 | 타입 | 필수 | 설명 |
-|---------|------|------|------|
-| status | string | N | 이벤트 상태 (ACTIVE, ENDED) |
 
 **요청 예시**:
 ```http
-GET /api/v1/coupon-events?status=ACTIVE
+GET /api/v1/coupon-events
 ```
 
 **응답 예시** (200 OK):
@@ -984,14 +985,12 @@ GET /api/v1/coupon-events?status=ACTIVE
       {
         "couponEventId": 10,
         "name": "신규 가입 쿠폰",
-        "description": "신규 가입 회원 대상 10,000원 할인",
-        "discountType": "FIXED_AMOUNT",
+        "discountType": "AMOUNT",
         "discountAmount": 10000,
         "totalQuantity": 1000,
         "remainingQuantity": 450,
-        "validFrom": "2025-10-29T00:00:00",
-        "validUntil": "2025-11-30T23:59:59",
-        "status": "ACTIVE"
+        "startDate": "2025-10-29T00:00:00",
+        "endDate": "2025-11-30T23:59:59",
       }
     ]
   },
@@ -1076,8 +1075,8 @@ GET /api/v1/coupon-events?status=ACTIVE
 
 #### DiscountType (할인 유형)
 ```
-- FIXED_AMOUNT: 고정 금액 할인
-- PERCENTAGE: 비율 할인
+- AMOUNT: 고정 금액 할인
+- RATE: 비율 할인
 ```
 
 #### PaymentMethod (결제 수단)
@@ -1110,9 +1109,9 @@ GET /api/v1/coupon-events?status=ACTIVE
 
 다음 API는 동시성 제어가 적용됩니다:
 
-1. **POST /orders**: 재고 차감 시 비관적 락 적용
-2. **POST /coupons/{couponEventId}/issue**: 쿠폰 수량 차감 시 비관적 락 적용
-3. **POST /balance/charge**: 잔액 업데이트 시 비관적 락 적용
+1. **POST /orders**: 재고 차감 시 `synchronized` 또는 `ReentrantLock` 적용
+2. **POST /coupons/{couponEventId}/issue**: 쿠폰 수량 차감 시 `synchronized` 또는 `ReentrantLock` 적용
+3. **POST /balance/charge**: 잔액 업데이트 시 `synchronized` 또는 `ReentrantLock` 적용
 
 ### 9.5 성능 고려사항
 

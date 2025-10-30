@@ -1,6 +1,7 @@
 # 이커머스 서비스 데이터 모델
 
 ## 목차
+
 1. [개요](#1-개요)
 2. [ERD (Entity Relationship Diagram)](#2-erd-entity-relationship-diagram)
 3. [엔티티 상세 명세](#3-엔티티-상세-명세)
@@ -12,12 +13,14 @@
 ## 1. 개요
 
 ### 1.1 설계 원칙
+
 - **최소화**: 핵심 기능에 필요한 테이블과 컬럼만 포함
 - **정규화**: 3NF까지 정규화하되 복잡성 최소화
 - **성능**: 조회 성능을 위한 최소한의 인덱스만 설계
 - **무결성**: 애플리케이션 레벨에서 참조 무결성 관리 (FK 제약 없음)
 
 ### 1.2 포함 테이블 (총 7개)
+
 1. **users** - 사용자 및 잔액
 2. **products** - 상품 및 재고
 3. **cart_items** - 장바구니
@@ -27,11 +30,13 @@
 7. **user_coupons** - 사용자 쿠폰
 
 ### 1.3 제외된 기능
+
 - **결제 이력 테이블** (payments): orders 테이블로 통합
 - **잔액 이력 테이블** (balance_history): 요구사항에 없음
 - **데이터 동기화 이력** (data_sync_history): 외부 연동은 애플리케이션 레벨에서 처리
 
 ### 1.4 FK 제약 조건 제거
+
 - **DDL**: FK 제약 조건 없음 (애플리케이션 레벨 관리)
 - **ERD**: 논리적 관계 표현을 위해 관계선 유지
 - **장점**: 유연한 스키마 변경, 성능 향상, 순환 참조 해결
@@ -65,6 +70,7 @@ erDiagram
     PRODUCTS {
         bigint id PK
         varchar name
+        text description
         bigint price
         int stock
         datetime created_at
@@ -87,6 +93,7 @@ erDiagram
         varchar status
         bigint coupon_id FK
         datetime created_at
+        datetime updated_at
     }
 
     ORDER_ITEMS {
@@ -105,18 +112,34 @@ erDiagram
         bigint discount_value
         int total_quantity
         int issued_quantity
-        datetime valid_until
+        datetime start_date
+        datetime end_date
     }
 
     USER_COUPONS {
         bigint id PK
         bigint user_id FK
-        bigint coupon_event_id FK
+        bigint coupon_id FK
         varchar discount_type
         bigint discount_value
-        boolean is_used
-        datetime valid_until
+        varchar status
         datetime issued_at
+        datetime used_at
+        datetime expires_at
+    }
+
+    OUTBOX {
+        bigint id PK
+        varchar aggregate_type
+        bigint aggregate_id
+        varchar event_type
+        json payload
+        varchar status
+        int retry_count
+        int max_retry
+        text last_error
+        datetime created_at
+        datetime processed_at
     }
 ```
 
@@ -128,19 +151,21 @@ erDiagram
 
 **테이블명**: `users`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 사용자 ID (PK) |
-| name | VARCHAR(100) | NO | - | 사용자 이름 |
-| balance | BIGINT | NO | 0 | 잔액 (원 단위) |
-| created_at | DATETIME | NO | CURRENT_TIMESTAMP | 생성 일시 |
-| updated_at | DATETIME | NO | CURRENT_TIMESTAMP | 수정 일시 |
+| 컬럼명     | 타입         | NULL | 기본값            | 설명           |
+| ---------- | ------------ | ---- | ----------------- | -------------- |
+| id         | BIGINT       | NO   | AUTO_INCREMENT    | 사용자 ID (PK) |
+| name       | VARCHAR(100) | NO   | -                 | 사용자 이름    |
+| balance    | BIGINT       | NO   | 0                 | 잔액 (원 단위) |
+| created_at | DATETIME     | NO   | CURRENT_TIMESTAMP | 생성 일시      |
+| updated_at | DATETIME     | NO   | CURRENT_TIMESTAMP | 수정 일시      |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
 - CHECK: `balance >= 0`
 
 **인덱스**:
+
 - PRIMARY: `id`
 
 ---
@@ -149,25 +174,29 @@ erDiagram
 
 **테이블명**: `products`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 상품 ID (PK) |
-| name | VARCHAR(200) | NO | - | 상품명 |
-| price | BIGINT | NO | - | 가격 (원 단위) |
-| stock | INT | NO | 0 | 재고 수량 |
-| created_at | DATETIME | NO | CURRENT_TIMESTAMP | 생성 일시 |
-| updated_at | DATETIME | NO | CURRENT_TIMESTAMP | 수정 일시 |
+| 컬럼명      | 타입         | NULL | 기본값            | 설명           |
+| ----------- | ------------ | ---- | ----------------- | -------------- |
+| id          | BIGINT       | NO   | AUTO_INCREMENT    | 상품 ID (PK)   |
+| name        | VARCHAR(200) | NO   | -                 | 상품명         |
+| description | TEXT         | NO   | -                 | 상품 설명      |
+| price       | BIGINT       | NO   | -                 | 가격 (원 단위) |
+| stock       | INT          | NO   | 0                 | 재고 수량      |
+| created_at  | DATETIME     | NO   | CURRENT_TIMESTAMP | 생성 일시      |
+| updated_at  | DATETIME     | NO   | CURRENT_TIMESTAMP | 수정 일시      |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
 - CHECK: `price > 0`
 - CHECK: `stock >= 0`
 
 **인덱스**:
+
 - PRIMARY: `id`
 
 **비즈니스 규칙**:
-- 재고 차감 시 `SELECT FOR UPDATE` 사용 (비관적 락)
+
+- 재고 차감 시 `synchronized` 또는 `ReentrantLock` 사용 (애플리케이션 레벨 동시성 제어)
 
 ---
 
@@ -175,23 +204,26 @@ erDiagram
 
 **테이블명**: `cart_items`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 장바구니 항목 ID (PK) |
-| user_id | BIGINT | NO | - | 사용자 ID (FK) |
-| product_id | BIGINT | NO | - | 상품 ID (FK) |
-| quantity | INT | NO | 1 | 수량 |
+| 컬럼명     | 타입   | NULL | 기본값         | 설명                  |
+| ---------- | ------ | ---- | -------------- | --------------------- |
+| id         | BIGINT | NO   | AUTO_INCREMENT | 장바구니 항목 ID (PK) |
+| user_id    | BIGINT | NO   | -              | 사용자 ID (FK)        |
+| product_id | BIGINT | NO   | -              | 상품 ID (FK)          |
+| quantity   | INT    | NO   | 1              | 수량                  |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
 - UNIQUE: (`user_id`, `product_id`) - 사용자당 상품 중복 방지
 - CHECK: `quantity >= 1`
 
 **인덱스**:
+
 - PRIMARY: `id`
 - UNIQUE INDEX: `idx_cart_user_product` ON (`user_id`, `product_id`)
 
 **참조 관계** (애플리케이션 레벨):
+
 - `user_id` → `users(id)`
 - `product_id` → `products(id)`
 
@@ -201,31 +233,36 @@ erDiagram
 
 **테이블명**: `orders`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 주문 ID (PK) |
-| user_id | BIGINT | NO | - | 사용자 ID (FK) |
-| total_amount | BIGINT | NO | - | 원래 금액 |
-| discount_amount | BIGINT | NO | 0 | 할인 금액 |
-| final_amount | BIGINT | NO | - | 최종 결제 금액 |
-| status | VARCHAR(20) | NO | 'COMPLETED' | 주문 상태 |
-| coupon_id | BIGINT | YES | NULL | 사용된 쿠폰 ID (FK) |
-| created_at | DATETIME | NO | CURRENT_TIMESTAMP | 주문 일시 |
+| 컬럼명          | 타입        | NULL | 기본값            | 설명                |
+| --------------- | ----------- | ---- | ----------------- | ------------------- |
+| id              | BIGINT      | NO   | AUTO_INCREMENT    | 주문 ID (PK)        |
+| user_id         | BIGINT      | NO   | -                 | 사용자 ID (FK)      |
+| total_amount    | BIGINT      | NO   | -                 | 원래 금액           |
+| discount_amount | BIGINT      | NO   | 0                 | 할인 금액           |
+| final_amount    | BIGINT      | NO   | -                 | 최종 결제 금액      |
+| status          | VARCHAR(20) | NO   | 'COMPLETED'       | 주문 상태           |
+| coupon_id       | BIGINT      | YES  | NULL              | 사용된 쿠폰 ID (FK) |
+| created_at      | DATETIME    | NO   | CURRENT_TIMESTAMP | 주문 일시           |
+| updated_at      | DATETIME    | NO   | CURRENT_TIMESTAMP | 수정 일시           |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
-- CHECK: `status IN ('COMPLETED', 'FAILED')`
+- CHECK: `status IN ('PENDING', 'COMPLETED', 'FAILED')`
 
 **인덱스**:
+
 - PRIMARY: `id`
 - INDEX: `idx_orders_user_created` ON (`user_id`, `created_at` DESC)
 - INDEX: `idx_orders_created` ON (`created_at`) - 인기 상품 집계용
 
 **참조 관계** (애플리케이션 레벨):
+
 - `user_id` → `users(id)`
 - `coupon_id` → `user_coupons(id)` (nullable)
 
 **비즈니스 규칙**:
+
 - `final_amount = total_amount - discount_amount`
 - 주문-결제-재고차감은 하나의 트랜잭션
 
@@ -235,26 +272,29 @@ erDiagram
 
 **테이블명**: `order_items`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 주문 항목 ID (PK) |
-| order_id | BIGINT | NO | - | 주문 ID (FK) |
-| product_id | BIGINT | NO | - | 상품 ID (FK) |
-| product_name | VARCHAR(200) | NO | - | 주문 당시 상품명 |
-| price | BIGINT | NO | - | 주문 당시 가격 |
-| quantity | INT | NO | - | 수량 |
+| 컬럼명       | 타입         | NULL | 기본값         | 설명              |
+| ------------ | ------------ | ---- | -------------- | ----------------- |
+| id           | BIGINT       | NO   | AUTO_INCREMENT | 주문 항목 ID (PK) |
+| order_id     | BIGINT       | NO   | -              | 주문 ID (FK)      |
+| product_id   | BIGINT       | NO   | -              | 상품 ID (FK)      |
+| product_name | VARCHAR(200) | NO   | -              | 주문 당시 상품명  |
+| price        | BIGINT       | NO   | -              | 주문 당시 가격    |
+| quantity     | INT          | NO   | -              | 수량              |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
 - CHECK: `price > 0`
 - CHECK: `quantity >= 1`
 
 **인덱스**:
+
 - PRIMARY: `id`
 - INDEX: `idx_order_items_order` ON (`order_id`)
 - INDEX: `idx_order_items_product_created` ON (`product_id`, `order_id`) - 인기 상품 집계용
 
 **참조 관계** (애플리케이션 레벨):
+
 - `order_id` → `orders(id)`
 - `product_id` → `products(id)`
 
@@ -264,27 +304,31 @@ erDiagram
 
 **테이블명**: `coupon_events`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 쿠폰 이벤트 ID (PK) |
-| name | VARCHAR(100) | NO | - | 쿠폰명 |
-| discount_type | VARCHAR(20) | NO | - | 할인 유형 (AMOUNT, RATE) |
-| discount_value | BIGINT | NO | - | 할인값 (금액 또는 비율) |
-| total_quantity | INT | NO | - | 총 발급 수량 |
-| issued_quantity | INT | NO | 0 | 발급된 수량 |
-| valid_until | DATETIME | NO | - | 유효 종료 일시 |
+| 컬럼명          | 타입         | NULL | 기본값         | 설명                     |
+| --------------- | ------------ | ---- | -------------- | ------------------------ |
+| id              | BIGINT       | NO   | AUTO_INCREMENT | 쿠폰 이벤트 ID (PK)      |
+| name            | VARCHAR(100) | NO   | -              | 쿠폰명                   |
+| discount_type   | VARCHAR(20)  | NO   | -              | 할인 유형 (AMOUNT, RATE) |
+| discount_value  | BIGINT       | NO   | -              | 할인값 (금액 또는 비율)  |
+| total_quantity  | INT          | NO   | -              | 총 발급 수량             |
+| issued_quantity | INT          | NO   | 0              | 발급된 수량              |
+| start_date      | DATETIME     | NO   | -              | 시작일시                 |
+| end_date        | DATETIME     | NO   | -              | 종료일시                 |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
 - CHECK: `discount_type IN ('AMOUNT', 'RATE')`
 - CHECK: `total_quantity > 0`
 - CHECK: `issued_quantity >= 0 AND issued_quantity <= total_quantity`
 
 **인덱스**:
+
 - PRIMARY: `id`
 
 **비즈니스 규칙**:
-- `issued_quantity` 증가 시 `SELECT FOR UPDATE` 사용 (비관적 락)
+
+- `issued_quantity` 증가 시 `synchronized` 또는 `ReentrantLock` 사용 (애플리케이션 레벨 동시성 제어)
 - `AMOUNT`: discount_value는 원 단위
 - `RATE`: discount_value는 % (예: 10 = 10%)
 
@@ -294,34 +338,66 @@ erDiagram
 
 **테이블명**: `user_coupons`
 
-| 컬럼명 | 타입 | NULL | 기본값 | 설명 |
-|--------|------|------|--------|------|
-| id | BIGINT | NO | AUTO_INCREMENT | 사용자 쿠폰 ID (PK) |
-| user_id | BIGINT | NO | - | 사용자 ID (FK) |
-| coupon_event_id | BIGINT | NO | - | 쿠폰 이벤트 ID (FK) |
-| discount_type | VARCHAR(20) | NO | - | 할인 유형 (스냅샷) |
-| discount_value | BIGINT | NO | - | 할인값 (스냅샷) |
-| is_used | BOOLEAN | NO | FALSE | 사용 여부 |
-| valid_until | DATETIME | NO | - | 유효 종료 일시 |
-| issued_at | DATETIME | NO | CURRENT_TIMESTAMP | 발급 일시 |
+| 컬럼명          | 타입        | NULL | 기본값            | 설명                |
+| --------------- | ----------- | ---- | ----------------- | ------------------- |
+| id              | BIGINT      | NO   | AUTO_INCREMENT    | 사용자 쿠폰 ID (PK) |
+| user_id         | BIGINT      | NO   | -                 | 사용자 ID (FK)      |
+| coupon_event_id | BIGINT      | NO   | -                 | 쿠폰 이벤트 ID (FK) |
+| discount_type   | VARCHAR(20) | NO   | -                 | 할인 유형 (스냅샷)  |
+| discount_value  | BIGINT      | NO   | -                 | 할인값 (스냅샷)     |
+| status          | VARCHAR(20) | NO   | 'AVAILABLE'       | 상태                |
+| issued_at       | DATETIME    | NO   | CURRENT_TIMESTAMP | 발급 일시           |
+| used_at         | DATETIME    | YES  | -                 | 사용일시            |
+| expires_at      | DATETIME    | NO   | -                 | 만료일시            |
 
 **제약 조건**:
+
 - PRIMARY KEY: `id`
-- UNIQUE: (`user_id`, `coupon_event_id`) - 중복 발급 방지
+- UNIQUE: (`user_id`, `coupon_id`) - 중복 발급 방지
 - CHECK: `discount_type IN ('AMOUNT', 'RATE')`
+- CHECK: `status IN ('PENDING', 'COMPLETED', 'FAILED')`
 
 **인덱스**:
+
 - PRIMARY: `id`
-- UNIQUE INDEX: `idx_user_coupon_unique` ON (`user_id`, `coupon_event_id`)
-- INDEX: `idx_user_coupons_user` ON (`user_id`, `is_used`)
+- UNIQUE INDEX: `idx_user_coupon_unique` ON (`user_id`, `coupon_id`)
+- INDEX: `idx_user_coupons_user` ON (`user_id`, `status`)
 
 **참조 관계** (애플리케이션 레벨):
+
 - `user_id` → `users(id)`
-- `coupon_event_id` → `coupon_events(id)`
+- `coupon_id` → `coupon_events(id)`
 
 **비즈니스 규칙**:
-- 발급 시 이벤트 정보를 스냅샷으로 저장
-- 사용 시 `is_used = TRUE`로 업데이트
+
+- 발급 시 이벤트 정보를 상태값으로 저장
+
+### 3.8 outbox
+
+외부 데이터 플랫폼 연동(FR-DATA-001~004)과 비동기 처리 Outbox
+
+| 컬럼           | 설명                 | 이유                                             |
+| -------------- | -------------------- | ------------------------------------------------ | --- |
+| aggregate_type | 도메인 엔티티 타입   | 어떤 엔티티의 이벤트인지 식별 (ORDER, COUPON 등) |
+| aggregate_id   | 엔티티 ID            | 원본 데이터 추적 가능                            |
+| event_type     | 이벤트 종류          | ORDER_COMPLETED, ORDER_CANCELLED 등 세분화       |
+| payload        | 이벤트 데이터 (JSON) | 외부 플랫폼에 전송할 실제 데이터                 |
+| status         | 전송 상태            | 처리 진행 상황 추적                              |
+| retry_count    | 재시도 횟수          | 무한 재시도 방지                                 |
+| last_error     | 실패 사유            | 디버깅 및 모니터링                               |     |
+
+**상태(Status) 값**
+
+- PENDING: 전송 대기 중
+- COMPLETED: 전송 완료
+- FAILED: 최대 재시도 후 실패
+
+**인덱스 전략**
+-- 재시도 대상 조회
+CREATE INDEX idx_outbox_next_retry ON outbox(status, next_retry_at);
+
+-- 특정 엔티티 이벤트 조회 (디버깅용)
+CREATE INDEX idx_outbox_aggregate ON outbox(aggregate_type, aggregate_id);
 
 ---
 
@@ -346,15 +422,16 @@ CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product_created ON order_items(product_id, order_id);
 
 -- 6. 사용자 쿠폰: 중복 발급 방지 + 조회
-CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_event_id);
+CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_id);
 
 -- 7. 사용자 쿠폰: 사용자별 쿠폰 조회
-CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, is_used);
+CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, status);
 ```
 
 ### 4.2 인덱스 사용 예시
 
 #### 사용자별 주문 내역 조회
+
 ```sql
 -- GET /orders?userId=1
 SELECT * FROM orders
@@ -366,13 +443,14 @@ LIMIT 10;
 ```
 
 #### 인기 상품 조회 (최근 3일)
+
 ```sql
 -- GET /products/popular
 SELECT oi.product_id, p.name, SUM(oi.quantity) as sales
 FROM order_items oi
 JOIN orders o ON oi.order_id = o.id
 JOIN products p ON oi.product_id = p.id
-WHERE o.created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+WHERE o.created_at >= DATE_SUB(NOW(), INTER  3 DAY)
 GROUP BY oi.product_id, p.name
 ORDER BY sales DESC
 LIMIT 5;
@@ -381,12 +459,21 @@ LIMIT 5;
 ```
 
 #### 재고 차감 (동시성 제어)
-```sql
--- 비관적 락
-SELECT * FROM products WHERE id = 1 FOR UPDATE;
-UPDATE products SET stock = stock - 10 WHERE id = 1;
 
--- 사용 인덱스: PRIMARY KEY
+```java
+// synchronized 또는 ReentrantLock 사용
+private final ReentrantLock stockLock = new ReentrantLock();
+
+public void decreaseStock(Long productId, int quantity) {
+    stockLock.lock();
+    try {
+        Product product = productRepository.findById(productId);
+        product.decreaseStock(quantity);
+        productRepository.save(product);
+    } finally {
+        stockLock.unlock();
+    }
+}
 ```
 
 ---
@@ -410,6 +497,7 @@ CREATE TABLE users (
 CREATE TABLE products (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
     price BIGINT NOT NULL,
     stock INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -437,7 +525,8 @@ CREATE TABLE coupon_events (
     discount_value BIGINT NOT NULL,
     total_quantity INT NOT NULL,
     issued_quantity INT NOT NULL DEFAULT 0,
-    valid_until DATETIME NOT NULL,
+    start_date DATETIME NOT NULL,
+    end_date DATETIME NOT NULL,
     CONSTRAINT chk_coupon_type CHECK (discount_type IN ('AMOUNT', 'RATE')),
     CONSTRAINT chk_coupon_quantity CHECK (total_quantity > 0 AND issued_quantity >= 0 AND issued_quantity <= total_quantity)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -446,17 +535,19 @@ CREATE TABLE coupon_events (
 CREATE TABLE user_coupons (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
-    coupon_event_id BIGINT NOT NULL,
+    coupon_id BIGINT NOT NULL,
     discount_type VARCHAR(20) NOT NULL,
     discount_value BIGINT NOT NULL,
-    is_used BOOLEAN NOT NULL DEFAULT FALSE,
-    valid_until DATETIME NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
     issued_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_user_coupon_type CHECK (discount_type IN ('AMOUNT', 'RATE'))
+    used_at DATETIME NULL,
+    expires_at DATETIME NOT NULL,
+    CONSTRAINT chk_user_coupon_type CHECK (discount_type IN ('AMOUNT', 'RATE')),
+    CONSTRAINT chk_user_coupon_status CHECK (status IN ('AVAILABLE', 'USED', 'EXPIRED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_event_id);
-CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, is_used);
+CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_id);
+CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, status);
 
 -- 6. 주문
 CREATE TABLE orders (
@@ -468,7 +559,8 @@ CREATE TABLE orders (
     status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED',
     coupon_id BIGINT,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_order_status CHECK (status IN ('COMPLETED', 'FAILED'))
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT chk_order_status CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
@@ -488,6 +580,25 @@ CREATE TABLE order_items (
 
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product_created ON order_items(product_id, order_id);
+
+CREATE TABLE outbox (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    aggregate_type VARCHAR(50) NOT NULL,           -- 이벤트 발생 엔티티 (ORDER, COUPON 등)
+    aggregate_id BIGINT NOT NULL,                  -- 엔티티 ID
+    event_type VARCHAR(50) NOT NULL,               -- 이벤트 타입 (ORDER_COMPLETED 등)
+    payload JSON NOT NULL,                         -- 이벤트 데이터
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- 전송 상태
+    retry_count INT NOT NULL DEFAULT 0,            -- 재시도 횟수
+    max_retry INT NOT NULL DEFAULT 3,              -- 최대 재시도 횟수
+    last_error TEXT NULL,                          -- 마지막 실패 사유
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME NULL,                    -- 처리 완료 시각
+    CONSTRAINT chk_outbox_status CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 인덱스
+CREATE INDEX idx_outbox_status_created ON outbox(status, created_at);
+CREATE INDEX idx_outbox_aggregate ON outbox(aggregate_type, aggregate_id);
 ```
 
 ---
@@ -502,36 +613,25 @@ INSERT INTO users (name, balance) VALUES
 ('박민수', 3000000);
 
 -- 상품
-INSERT INTO products (name, price, stock) VALUES
-('노트북', 1500000, 50),
-('마우스', 30000, 100),
-('키보드', 80000, 30),
-('모니터', 400000, 20),
-('헤드셋', 120000, 40);
+INSERT INTO products (name, description, price, stock) VALUES
+('노트북', '노트북 상세 설명입니다.', 1500000, 50),
+('마우스', '마우스 상세 설명입니다.', 30000, 100),
+('키보드', '키보드 상세 설명입니다.', 80000, 30),
+('모니터', '모니터 상세 설명입니다.', 400000, 20),
+('헤드셋', '헤드셋 상세 설명입니다.', 120000, 40);
 
 -- 쿠폰 이벤트
-INSERT INTO coupon_events (name, discount_type, discount_value, total_quantity, valid_until) VALUES
-('10,000원 할인 쿠폰', 'AMOUNT', 10000, 1000, '2025-12-31 23:59:59'),
-('10% 할인 쿠폰', 'RATE', 10, 500, '2025-11-30 23:59:59');
+INSERT INTO coupon_events (name, discount_type, discount_value, total_quantity, start_date, end_date) VALUES
+('10,000원 할인 쿠폰', 'AMOUNT', 10000, 1000, '2025-12-25 23:59:59', '2025-12-31 23:59:59'),
+('10% 할인 쿠폰', 'RATE', 10, 500, '2025-11-30 23:59:59', '2025-12-31 23:59:59');
 ```
 
 ---
 
 ## 7. 주요 설계 결정 사항
 
-### 7.1 제거된 컬럼/테이블
-1. **products.description** - API 응답에 불필요
-2. **payments 테이블** - orders로 통합 (잔액 결제만 지원)
-3. **balance_history 테이블** - 요구사항에 없음
-4. **data_sync_history 테이블** - 애플리케이션 레벨 처리
-5. **타임스탬프 중복** - created_at만 유지 (updated_at 최소화)
+### 7.1 FK 제약 조건 제거 이유
 
-### 7.2 단순화된 설계
-1. **쿠폰 할인 타입 통합**: FIXED_AMOUNT/PERCENTAGE → AMOUNT/RATE (단순화)
-2. **쿠폰 수량 관리**: remaining_quantity → issued_quantity (계산 단순화)
-3. **주문 상태**: PENDING 제거 → COMPLETED/FAILED만 사용
-
-### 7.3 FK 제약 조건 제거 이유
 1. **유연성**: 스키마 변경 시 제약 조건 수정 불필요
 2. **성능**: FK 체크 오버헤드 제거, INSERT/UPDATE 속도 향상
 3. **순환 참조 해결**: orders ↔ user_coupons 간 순환 참조 문제 해소
@@ -539,33 +639,35 @@ INSERT INTO coupon_events (name, discount_type, discount_value, total_quantity, 
 5. **마이그레이션 간소화**: 테이블 생성 순서 신경쓸 필요 없음
 
 **참조 무결성 보장 방법**:
+
 - 애플리케이션 레벨에서 검증 (서비스 레이어)
 - JPA/Hibernate의 @ManyToOne, @OneToMany 관계 활용
 - 존재하지 않는 ID 참조 시 예외 처리
 
-### 7.4 동시성 제어
-- **재고 차감**: `SELECT FOR UPDATE` (products.stock)
-- **쿠폰 발급**: `SELECT FOR UPDATE` (coupon_events.issued_quantity)
-- **잔액 차감**: `SELECT FOR UPDATE` (users.balance)
+### 7.2 동시성 제어
+
+- **재고 차감**: `synchronized` 또는 `ReentrantLock` (products.stock)
+- **쿠폰 발급**: `synchronized` 또는 `ReentrantLock` (coupon_events.issued_quantity)
+- **잔액 차감**: `synchronized` 또는 `ReentrantLock` (users.balance)
 
 ---
 
 ## 8. 테이블 요약
 
-| 테이블 | 행 수 | 주요 용도 | 동시성 제어 |
-|--------|------|----------|-----------|
-| users | 소규모 | 사용자, 잔액 관리 | 비관적 락 |
-| products | 소규모 | 상품, 재고 관리 | 비관적 락 |
-| cart_items | 중간 | 장바구니 | - |
-| orders | 대규모 | 주문 이력 | - |
-| order_items | 대규모 | 주문 상품 상세 | - |
-| coupon_events | 소규모 | 쿠폰 이벤트 | 비관적 락 |
-| user_coupons | 중간 | 발급된 쿠폰 | - |
+| 테이블        | 행 수  | 주요 용도         | 동시성 제어                |
+| ------------- | ------ | ----------------- | -------------------------- |
+| users         | 소규모 | 사용자, 잔액 관리 | synchronized/ReentrantLock |
+| products      | 소규모 | 상품, 재고 관리   | synchronized/ReentrantLock |
+| cart_items    | 중간   | 장바구니          | -                          |
+| orders        | 대규모 | 주문 이력         | -                          |
+| order_items   | 대규모 | 주문 상품 상세    | -                          |
+| coupon_events | 소규모 | 쿠폰 이벤트       | synchronized/ReentrantLock |
+| user_coupons  | 중간   | 발급된 쿠폰       | -                          |
 
 ---
 
 ## 변경 이력
 
-| 버전 | 날짜 | 변경 내용 |
-|------|------|----------|
+| 버전 | 날짜       | 변경 내용                      |
+| ---- | ---------- | ------------------------------ |
 | v1.0 | 2025-10-29 | 간소화된 데이터 모델 설계 완료 |
