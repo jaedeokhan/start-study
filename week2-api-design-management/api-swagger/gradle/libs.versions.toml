@@ -8,6 +8,7 @@ spring_io_dependency_management = "1.1.0"
 spring_mockk = "4.0.2"
 
 lombok = "1.18.22"
+springdoc_openapi = "2.3.0"
 
 redisson = "3.25.2"
 # test
@@ -52,6 +53,8 @@ jackson_kotlin = { module = "com.fasterxml.jackson.module:jackson-module-kotlin"
 
 micrometer_tracing_bridge_brave = { module = "io.micrometer:micrometer-tracing-bridge-brave" }
 micrometer_registry_prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+
+springdoc_openapi = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc_openapi" }
 # test
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 spring_mockk = { module = "com.ninja-squad:springmockk", version.ref = "spring_mockk" }
