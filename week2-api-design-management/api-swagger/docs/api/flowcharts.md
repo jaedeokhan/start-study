@@ -193,7 +193,7 @@ flowchart TD
     CheckCart -->|비어있음| ErrorEmptyCart[400 Bad Request<br/>장바구니 비어있음]
     CheckCart -->|있음| Step2
 
-    Step2[2. 재고 확인<br/>FOR UPDATE] --> CheckStock{모든 상품<br/>재고 충분?}
+    Step2[2. 재고 확인<br/>synchronized/ReentrantLock] --> CheckStock{모든 상품<br/>재고 충분?}
     CheckStock -->|부족| ErrorStock[409 Conflict<br/>재고 부족]
     CheckStock -->|충분| Step3
 
@@ -205,7 +205,7 @@ flowchart TD
     CheckCoupon -->|유효| CalculateDiscount[할인 금액 계산]
     CalculateDiscount --> Step4
 
-    Step4[4. 잔액 확인<br/>FOR UPDATE] --> CheckBalance{잔액<br/>충분?}
+    Step4[4. 잔액 확인<br/>synchronized/ReentrantLock] --> CheckBalance{잔액<br/>충분?}
     CheckBalance -->|부족| ErrorBalance[400 Bad Request<br/>잔액 부족]
     CheckBalance -->|충분| Step5
 
@@ -256,7 +256,7 @@ flowchart TD
     ValidateAmount -->|아니오| ErrorAmount[400 Bad Request<br/>잘못된 금액]
     ValidateAmount -->|예| TxStart{{트랜잭션 시작}}
 
-    TxStart --> LockUser[사용자 조회<br/>FOR UPDATE]
+    TxStart --> LockUser[사용자 조회<br/>synchronized/ReentrantLock]
     LockUser --> CheckUser{사용자<br/>존재?}
     CheckUser -->|없음| ErrorUser[404 Not Found<br/>사용자 없음]
     CheckUser -->|존재| UpdateBalance[잔액 업데이트<br/>balance += amount]
@@ -293,7 +293,7 @@ flowchart TD
 
     IssueAPI --> TxStart{{트랜잭션 시작}}
 
-    TxStart --> LockEvent[쿠폰 이벤트 조회<br/>FOR UPDATE]
+    TxStart --> LockEvent[쿠폰 이벤트 조회<br/>synchronized/ReentrantLock]
     LockEvent --> CheckEvent{이벤트<br/>존재?}
     CheckEvent -->|없음| ErrorEvent[404 Not Found<br/>이벤트 없음]
     CheckEvent -->|존재| CheckQuantity{쿠폰<br/>남아있음?}
@@ -363,15 +363,15 @@ flowchart TD
 
 ## 6. 동시성 제어 패턴
 
-### 6.1 비관적 락 처리 흐름
+### 6.1 synchronized/ReentrantLock 처리 흐름
 
 ```mermaid
 flowchart TD
     Start([동시 요청 발생]) --> MultipleReq[여러 트랜잭션<br/>동시 시작]
 
-    MultipleReq --> Tx1[트랜잭션 1:<br/>SELECT FOR UPDATE]
-    MultipleReq --> Tx2[트랜잭션 2:<br/>SELECT FOR UPDATE 대기]
-    MultipleReq --> Tx3[트랜잭션 3:<br/>SELECT FOR UPDATE 대기]
+    MultipleReq --> Tx1[트랜잭션 1:<br/>Lock 획득 시도]
+    MultipleReq --> Tx2[트랜잭션 2:<br/>Lock 대기]
+    MultipleReq --> Tx3[트랜잭션 3:<br/>Lock 대기]
 
     Tx1 --> Lock1[락 획득 성공]
     Lock1 --> Process1[비즈니스 로직 처리<br/>재고/쿠폰 차감]
@@ -507,17 +507,17 @@ FOR UPDATE → 락 획득 → 처리 → 커밋 (락 해제)
 |--------|---------|-----------|---------|
 | **상품 조회** | 불필요 | 불필요 | 상품 존재 여부 |
 | **장바구니 추가** | 선택적 | 불필요 | 재고 확인, 중복 체크 |
-| **주문 생성** | 필수 | FOR UPDATE (재고/잔액) | 재고/잔액/쿠폰 검증 |
-| **잔액 충전** | 필수 | FOR UPDATE (잔액) | 금액 양수 체크 |
-| **쿠폰 발급** | 필수 | FOR UPDATE (쿠폰 수량) | 쿠폰 수량, 중복 발급 |
+| **주문 생성** | 필수 | synchronized/ReentrantLock (재고/잔액) | 재고/잔액/쿠폰 검증 |
+| **잔액 충전** | 필수 | synchronized/ReentrantLock (잔액) | 금액 양수 체크 |
+| **쿠폰 발급** | 필수 | synchronized/ReentrantLock (쿠폰 수량) | 쿠폰 수량, 중복 발급 |
 
 ### 9.2 트랜잭션 범위 정리
 
 #### 주문 생성 트랜잭션 (가장 복잡)
 1. 장바구니 조회
-2. 재고 확인 (FOR UPDATE)
+2. 재고 확인 (synchronized/ReentrantLock)
 3. 쿠폰 검증 (선택)
-4. 잔액 확인 (FOR UPDATE)
+4. 잔액 확인 (synchronized/ReentrantLock)
 5. 주문 생성
 6. 주문 항목 저장
 7. 재고 차감

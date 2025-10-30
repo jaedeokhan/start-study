@@ -123,7 +123,7 @@ sequenceDiagram
     Note over OrderService,DB: 트랜잭션 시작
 
     OrderService->>DB: 1. 장바구니 조회
-    OrderService->>DB: 2. 재고 확인 (FOR UPDATE)
+    OrderService->>DB: 2. 재고 확인 (synchronized/ReentrantLock)
     OrderService->>DB: 3. 쿠폰 검증 (있는 경우)
     OrderService->>DB: 4. 잔액 확인
 
@@ -160,7 +160,7 @@ sequenceDiagram
     Note over OrderService,DB: 트랜잭션 시작
 
     alt 재고 부족
-        OrderService->>DB: 재고 확인 (FOR UPDATE)
+        OrderService->>DB: 재고 확인 (synchronized/ReentrantLock)
         DB-->>OrderService: stock < quantity
         Note over OrderService,DB: 트랜잭션 롤백
         OrderService-->>API: 409 Conflict
@@ -200,7 +200,7 @@ sequenceDiagram
 
     Note over PaymentService,DB: 트랜잭션 시작
 
-    PaymentService->>DB: SELECT * FROM users<br/>WHERE id = ? FOR UPDATE
+    PaymentService->>DB: 사용자 조회 (synchronized/ReentrantLock)
     PaymentService->>DB: UPDATE users<br/>SET balance = balance + amount
 
     Note over PaymentService,DB: 트랜잭션 커밋
@@ -230,7 +230,7 @@ sequenceDiagram
 
     Note over CouponService,DB: 트랜잭션 시작
 
-    CouponService->>DB: SELECT * FROM coupon_events<br/>WHERE id = ? FOR UPDATE
+    CouponService->>DB: 쿠폰 이벤트 조회 (synchronized/ReentrantLock)
 
     alt 쿠폰 소진
         DB-->>CouponService: issued_quantity >= total_quantity
@@ -288,20 +288,43 @@ sequenceDiagram
 
 ## 5. 핵심 패턴 요약
 
-### 5.1 동시성 제어 (비관적 락)
+### 5.1 동시성 제어 (synchronized/ReentrantLock)
 
-```sql
--- 재고 차감 시
-SELECT * FROM products WHERE id = ? FOR UPDATE;
-UPDATE products SET stock = stock - ? WHERE id = ?;
+```java
+// 재고 차감 시
+private final ReentrantLock stockLock = new ReentrantLock();
 
--- 쿠폰 발급 시
-SELECT * FROM coupon_events WHERE id = ? FOR UPDATE;
-UPDATE coupon_events SET issued_quantity = issued_quantity + 1 WHERE id = ?;
+public void decreaseStock(Long productId, int quantity) {
+    stockLock.lock();
+    try {
+        Product product = productRepository.findById(productId);
+        product.decreaseStock(quantity);
+        productRepository.save(product);
+    } finally {
+        stockLock.unlock();
+    }
+}
 
--- 잔액 차감 시
-SELECT * FROM users WHERE id = ? FOR UPDATE;
-UPDATE users SET balance = balance - ? WHERE id = ?;
+// 쿠폰 발급 시
+private final ReentrantLock couponLock = new ReentrantLock();
+
+public void issueCoupon(Long couponEventId, Long userId) {
+    couponLock.lock();
+    try {
+        CouponEvent event = couponEventRepository.findById(couponEventId);
+        event.increaseIssuedQuantity();
+        // 쿠폰 발급 처리
+    } finally {
+        couponLock.unlock();
+    }
+}
+
+// 잔액 차감 시
+public synchronized void updateBalance(Long userId, long amount) {
+    User user = userRepository.findById(userId);
+    user.updateBalance(amount);
+    userRepository.save(user);
+}
 ```
 
 ### 5.2 트랜잭션 범위
@@ -345,7 +368,7 @@ UPDATE users SET balance = balance - ? WHERE id = ?;
 - **DB**: 데이터베이스
 
 ### 주요 표기
-- `FOR UPDATE`: 비관적 락 (동시성 제어)
+- `synchronized/ReentrantLock`: 애플리케이션 레벨 동시성 제어
 - `트랜잭션 시작/커밋/롤백`: 원자성 보장
 - `alt-else`: 조건 분기 (에러 처리)
 
