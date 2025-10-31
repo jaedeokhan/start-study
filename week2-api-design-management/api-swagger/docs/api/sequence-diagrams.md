@@ -180,32 +180,118 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
+    participant Controller as OrderController
     participant OrderService
-    participant DB
+    participant CartService
+    participant ProductService
+    participant PaymentService
+    participant CouponService
+    participant Repositories as Repositories
 
-    고객->>API: POST /orders<br/>{userId, couponId?}
-    API->>OrderService: createOrder()
+    고객->>Controller: POST /api/v1/orders<br/>{userId, couponId?}
+    activate Controller
 
-    Note over OrderService,DB: 트랜잭션 시작
+    Controller->>OrderService: createOrder(request)
+    activate OrderService
 
-    OrderService->>DB: 1. 장바구니 조회
-    OrderService->>DB: 2. 재고 확인 (synchronized/ReentrantLock)
-    OrderService->>DB: 3. 쿠폰 검증 (있는 경우)
-    OrderService->>DB: 4. 잔액 확인
+    Note over OrderService: 🔒 트랜잭션 시작
 
-    OrderService->>DB: 5. 주문 생성 (orders)
-    OrderService->>DB: 6. 주문 항목 저장 (order_items)
-    OrderService->>DB: 7. 재고 차감 (products.stock)
-    OrderService->>DB: 8. 잔액 차감 (users.balance)
-    OrderService->>DB: 9. 쿠폰 사용 처리 (user_coupons)
-    OrderService->>DB: 10. 장바구니 삭제
+    %% 1. 장바구니 조회
+    OrderService->>CartService: getCartItems(userId)
+    activate CartService
+    CartService->>Repositories: findByUserId()
+    activate Repositories
+    Repositories-->>CartService: List<CartItem>
+    deactivate Repositories
+    CartService-->>OrderService: List<CartItem>
+    deactivate CartService
 
-    Note over OrderService,DB: 트랜잭션 커밋
+    %% 2. 재고 확인 (동시성 제어)
+    OrderService->>ProductService: validateStocks(cartItems)
+    activate ProductService
+    Note over ProductService: 🔐 synchronized
+    ProductService->>Repositories: findByIdWithLock()
+    activate Repositories
+    Repositories-->>ProductService: Products
+    deactivate Repositories
+    ProductService-->>OrderService: 재고 검증 완료
+    deactivate ProductService
 
-    DB-->>OrderService: 주문 완료
-    OrderService-->>API: OrderResponse
-    API-->>고객: 201 Created
+    %% 3. 쿠폰 적용 (선택)
+    opt 쿠폰 사용
+        OrderService->>CouponService: validateCoupon(couponId)
+        activate CouponService
+        CouponService->>Repositories: findById()
+        activate Repositories
+        Repositories-->>CouponService: UserCoupon
+        deactivate Repositories
+        CouponService-->>OrderService: 할인 금액
+        deactivate CouponService
+    end
+
+    %% 4. 결제 처리 (동시성 제어)
+    OrderService->>PaymentService: processPayment(userId, finalAmount)
+    activate PaymentService
+    Note over PaymentService: 🔐 synchronized
+    PaymentService->>Repositories: findByIdWithLock()
+    activate Repositories
+    Repositories-->>PaymentService: User
+    deactivate Repositories
+    PaymentService->>Repositories: save(user)
+    activate Repositories
+    Note over Repositories: 잔액 차감
+    Repositories-->>PaymentService: 결제 완료
+    deactivate Repositories
+    PaymentService-->>OrderService: PaymentResult
+    deactivate PaymentService
+
+    %% 5. 주문 저장
+    OrderService->>Repositories: save(order, orderItems)
+    activate Repositories
+    Note over Repositories: INSERT orders, order_items
+    Repositories-->>OrderService: Order
+    deactivate Repositories
+
+    %% 6. 재고 차감
+    OrderService->>ProductService: decreaseStocks(orderItems)
+    activate ProductService
+    ProductService->>Repositories: save(products)
+    activate Repositories
+    Note over Repositories: UPDATE stock
+    Repositories-->>ProductService: 재고 차감 완료
+    deactivate Repositories
+    ProductService-->>OrderService: void
+    deactivate ProductService
+
+    %% 7. 쿠폰 사용 처리
+    opt 쿠폰 사용
+        OrderService->>CouponService: markAsUsed(couponId)
+        activate CouponService
+        CouponService->>Repositories: save(coupon)
+        activate Repositories
+        Repositories-->>CouponService: void
+        deactivate Repositories
+        CouponService-->>OrderService: void
+        deactivate CouponService
+    end
+
+    %% 8. 장바구니 비우기
+    OrderService->>CartService: clearCart(userId)
+    activate CartService
+    CartService->>Repositories: deleteByUserId()
+    activate Repositories
+    Repositories-->>CartService: void
+    deactivate Repositories
+    CartService-->>OrderService: void
+    deactivate CartService
+
+    Note over OrderService: ✅ 트랜잭션 커밋
+
+    OrderService-->>Controller: OrderResponse
+    deactivate OrderService
+
+    Controller-->>고객: 201 Created
+    deactivate Controller
 ```
 
 **Related**: US-ORDR-001, US-PAY-003, US-PAY-004
@@ -217,36 +303,37 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
+    participant Controller as OrderController
     participant OrderService
-    participant DB
+    participant CartService
+    participant ProductService
 
-    고객->>API: POST /orders
-    API->>OrderService: createOrder()
+    고객->>Controller: POST /api/v1/orders
+    activate Controller
 
-    Note over OrderService,DB: 트랜잭션 시작
+    Controller->>OrderService: createOrder(request)
+    activate OrderService
 
-    alt 재고 부족
-        OrderService->>DB: 재고 확인 (synchronized/ReentrantLock)
-        DB-->>OrderService: stock < quantity
-        Note over OrderService,DB: 트랜잭션 롤백
-        OrderService-->>API: 409 Conflict
-        API-->>고객: 재고 부족
+    Note over OrderService: 🔒 트랜잭션 시작
 
-    else 잔액 부족
-        OrderService->>DB: 잔액 확인
-        DB-->>OrderService: balance < amount
-        Note over OrderService,DB: 트랜잭션 롤백
-        OrderService-->>API: 400 Bad Request
-        API-->>고객: 잔액 부족
+    OrderService->>CartService: getCartItems(userId)
+    activate CartService
+    CartService-->>OrderService: List<CartItem>
+    deactivate CartService
 
-    else 쿠폰 만료/사용됨
-        OrderService->>DB: 쿠폰 검증
-        DB-->>OrderService: 쿠폰 유효하지 않음
-        Note over OrderService,DB: 트랜잭션 롤백
-        OrderService-->>API: 400 Bad Request
-        API-->>고객: 쿠폰 오류
-    end
+    OrderService->>ProductService: validateStocks(cartItems)
+    activate ProductService
+    Note over ProductService: 재고: 5, 요청: 10
+    ProductService-->>OrderService: throw InsufficientStockException
+    deactivate ProductService
+
+    Note over OrderService: ❌ 트랜잭션 롤백
+
+    OrderService-->>Controller: throw InsufficientStockException
+    deactivate OrderService
+
+    Controller-->>고객: 409 Conflict
+    deactivate Controller
 ```
 
 **Related**: US-ORDR-001, US-PAY-003
