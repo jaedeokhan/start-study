@@ -22,7 +22,6 @@
 7. **user_coupons** - 사용자 쿠폰
 8. **outbox** - outbox
 
-
 ---
 
 ## 2. ERD (Entity Relationship Diagram)
@@ -117,9 +116,6 @@ erDiagram
         varchar event_type
         json payload
         varchar status
-        int retry_count
-        int max_retry
-        text last_error
         datetime created_at
         datetime processed_at
     }
@@ -358,15 +354,12 @@ erDiagram
 
 외부 데이터 플랫폼 연동(FR-DATA-001~004)과 비동기 처리 Outbox
 
-| 컬럼           | 설명                 | 이유                                             |
-| -------------- | -------------------- | ------------------------------------------------ | --- |
+| 컬럼           | 설명                 | 이유                                             | 
+| -------------- | -------------------- | ------------------------------------------------ |
 | aggregate_type | 도메인 엔티티 타입   | 어떤 엔티티의 이벤트인지 식별 (ORDER, COUPON 등) |
 | aggregate_id   | 엔티티 ID            | 원본 데이터 추적 가능                            |
 | event_type     | 이벤트 종류          | ORDER_COMPLETED, ORDER_CANCELLED 등 세분화       |
 | payload        | 이벤트 데이터 (JSON) | 외부 플랫폼에 전송할 실제 데이터                 |
-| status         | 전송 상태            | 처리 진행 상황 추적                              |
-| retry_count    | 재시도 횟수          | 무한 재시도 방지                                 |
-| last_error     | 실패 사유            | 디버깅 및 모니터링                               |     |
 
 **상태(Status) 값**
 
@@ -558,9 +551,3 @@ INSERT INTO coupon_events (name, discount_type, discount_value, total_quantity, 
 ('10,000원 할인 쿠폰', 'AMOUNT', 10000, 1000, '2025-12-25 23:59:59', '2025-12-31 23:59:59'),
 ('10% 할인 쿠폰', 'RATE', 10, 500, '2025-11-30 23:59:59', '2025-12-31 23:59:59');
 ```
-
-## 변경 이력
-
-| 버전 | 날짜       | 변경 내용                      |
-| ---- | ---------- | ------------------------------ |
-| v1.0 | 2025-10-29 | 간소화된 데이터 모델 설계 완료 |
