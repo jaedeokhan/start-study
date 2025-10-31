@@ -10,72 +10,7 @@
 ---
 
 ## 1. 전체 시스템 플로우
-
-### 1.1 전체 사용자 여정 (End-to-End Flow)
-
-```mermaid
-flowchart TD
-    Start([고객 접속]) --> ViewProducts[상품 목록 조회]
-
-    ViewProducts --> CheckPopular{인기 상품<br/>확인?}
-    CheckPopular -->|예| PopularProducts[인기 상품 Top 5 조회]
-    CheckPopular -->|아니오| SelectProduct[상품 선택]
-    PopularProducts --> SelectProduct
-
-    SelectProduct --> ViewDetail[상품 상세 정보 조회]
-    ViewDetail --> AddCart{장바구니<br/>추가?}
-
-    AddCart -->|예| CartAdd[장바구니에 상품 추가]
-    AddCart -->|아니오| ViewDetail
-
-    CartAdd --> ContinueShopping{계속<br/>쇼핑?}
-    ContinueShopping -->|예| ViewProducts
-    ContinueShopping -->|아니오| ViewCart[장바구니 조회]
-
-    ViewCart --> ModifyCart{장바구니<br/>수정?}
-    ModifyCart -->|수량 변경| UpdateQuantity[수량 변경]
-    ModifyCart -->|삭제| RemoveItem[상품 삭제]
-    ModifyCart -->|주문하기| CheckBalance[잔액 조회]
-
-    UpdateQuantity --> ViewCart
-    RemoveItem --> ViewCart
-
-    CheckBalance --> BalanceOK{잔액<br/>충분?}
-    BalanceOK -->|부족| ChargeBalance[잔액 충전]
-    ChargeBalance --> CheckBalance
-
-    BalanceOK -->|충분| CheckCoupon{쿠폰<br/>사용?}
-    CheckCoupon -->|예| SelectCoupon[쿠폰 선택]
-    CheckCoupon -->|아니오| CreateOrder[주문 생성]
-    SelectCoupon --> CreateOrder
-
-    CreateOrder --> OrderSuccess{주문<br/>성공?}
-    OrderSuccess -->|성공| Payment[결제 처리]
-    OrderSuccess -->|재고 부족| StockError[재고 부족 에러]
-    OrderSuccess -->|쿠폰 오류| CouponError[쿠폰 오류]
-
-    StockError --> ViewCart
-    CouponError --> ViewCart
-
-    Payment --> PaymentSuccess{결제<br/>성공?}
-    PaymentSuccess -->|성공| Complete[주문 완료]
-    PaymentSuccess -->|실패| PaymentError[결제 실패]
-
-    PaymentError --> ViewCart
-    Complete --> ViewOrders[주문 내역 조회]
-    ViewOrders --> End([완료])
-
-    style Start fill:#e1f5e1
-    style Complete fill:#e1f5e1
-    style End fill:#e1f5e1
-    style StockError fill:#ffe1e1
-    style CouponError fill:#ffe1e1
-    style PaymentError fill:#ffe1e1
-```
-
-**Related**: 전체 사용자 스토리 통합
-
----
+생략략
 
 ## 2. 상품 조회 플로우
 
@@ -432,11 +367,3 @@ FOR UPDATE → 락 획득 → 처리 → 커밋 (락 해제)
 10. 장바구니 삭제
 
 → **All or Nothing**: 모든 단계 성공 시 커밋, 하나라도 실패 시 롤백
-
----
-
-## 변경 이력
-
-| 버전 | 날짜 | 변경 내용 |
-|------|------|----------|
-| v1.0 | 2025-10-29 | 플로우차트 초기 버전 작성 |
