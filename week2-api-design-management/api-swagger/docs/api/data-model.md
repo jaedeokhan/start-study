@@ -12,15 +12,7 @@
 
 ## 1. 개요
 
-### 1.1 설계 원칙
-
-- **최소화**: 핵심 기능에 필요한 테이블과 컬럼만 포함
-- **정규화**: 3NF까지 정규화하되 복잡성 최소화
-- **성능**: 조회 성능을 위한 최소한의 인덱스만 설계
-- **무결성**: 애플리케이션 레벨에서 참조 무결성 관리 (FK 제약 없음)
-
-### 1.2 포함 테이블 (총 7개)
-
+### 1.1 포함 테이블 (총 7개)
 1. **users** - 사용자 및 잔액
 2. **products** - 상품 및 재고
 3. **cart_items** - 장바구니
@@ -28,18 +20,8 @@
 5. **order_items** - 주문 상품
 6. **coupon_events** - 쿠폰 이벤트
 7. **user_coupons** - 사용자 쿠폰
+8. **outbox** - outbox
 
-### 1.3 제외된 기능
-
-- **결제 이력 테이블** (payments): orders 테이블로 통합
-- **잔액 이력 테이블** (balance_history): 요구사항에 없음
-- **데이터 동기화 이력** (data_sync_history): 외부 연동은 애플리케이션 레벨에서 처리
-
-### 1.4 FK 제약 조건 제거
-
-- **DDL**: FK 제약 조건 없음 (애플리케이션 레벨 관리)
-- **ERD**: 논리적 관계 표현을 위해 관계선 유지
-- **장점**: 유연한 스키마 변경, 성능 향상, 순환 참조 해결
 
 ---
 
@@ -428,59 +410,9 @@ CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_id);
 CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, status);
 ```
 
-### 4.2 인덱스 사용 예시
-
-#### 사용자별 주문 내역 조회
-
-```sql
--- GET /orders?userId=1
-SELECT * FROM orders
-WHERE user_id = 1
-ORDER BY created_at DESC
-LIMIT 10;
-
--- 사용 인덱스: idx_orders_user_created
-```
-
-#### 인기 상품 조회 (최근 3일)
-
-```sql
--- GET /products/popular
-SELECT oi.product_id, p.name, SUM(oi.quantity) as sales
-FROM order_items oi
-JOIN orders o ON oi.order_id = o.id
-JOIN products p ON oi.product_id = p.id
-WHERE o.created_at >= DATE_SUB(NOW(), INTER  3 DAY)
-GROUP BY oi.product_id, p.name
-ORDER BY sales DESC
-LIMIT 5;
-
--- 사용 인덱스: idx_orders_created, idx_order_items_product_created
-```
-
-#### 재고 차감 (동시성 제어)
-
-```java
-// synchronized 또는 ReentrantLock 사용
-private final ReentrantLock stockLock = new ReentrantLock();
-
-public void decreaseStock(Long productId, int quantity) {
-    stockLock.lock();
-    try {
-        Product product = productRepository.findById(productId);
-        product.decreaseStock(quantity);
-        productRepository.save(product);
-    } finally {
-        stockLock.unlock();
-    }
-}
-```
-
 ---
 
 ## 5. 테이블 생성 DDL
-
-**주의**: 모든 FK(Foreign Key) 제약 조건이 제거되었습니다. 참조 무결성은 애플리케이션 레벨에서 관리합니다.
 
 ```sql
 -- 1. 사용자
@@ -581,6 +513,7 @@ CREATE TABLE order_items (
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product_created ON order_items(product_id, order_id);
 
+-- 8. outbox
 CREATE TABLE outbox (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     aggregate_type VARCHAR(50) NOT NULL,           -- 이벤트 발생 엔티티 (ORDER, COUPON 등)
@@ -625,46 +558,6 @@ INSERT INTO coupon_events (name, discount_type, discount_value, total_quantity, 
 ('10,000원 할인 쿠폰', 'AMOUNT', 10000, 1000, '2025-12-25 23:59:59', '2025-12-31 23:59:59'),
 ('10% 할인 쿠폰', 'RATE', 10, 500, '2025-11-30 23:59:59', '2025-12-31 23:59:59');
 ```
-
----
-
-## 7. 주요 설계 결정 사항
-
-### 7.1 FK 제약 조건 제거 이유
-
-1. **유연성**: 스키마 변경 시 제약 조건 수정 불필요
-2. **성능**: FK 체크 오버헤드 제거, INSERT/UPDATE 속도 향상
-3. **순환 참조 해결**: orders ↔ user_coupons 간 순환 참조 문제 해소
-4. **데이터 삭제 유연성**: CASCADE 없이 애플리케이션에서 제어
-5. **마이그레이션 간소화**: 테이블 생성 순서 신경쓸 필요 없음
-
-**참조 무결성 보장 방법**:
-
-- 애플리케이션 레벨에서 검증 (서비스 레이어)
-- JPA/Hibernate의 @ManyToOne, @OneToMany 관계 활용
-- 존재하지 않는 ID 참조 시 예외 처리
-
-### 7.2 동시성 제어
-
-- **재고 차감**: `synchronized` 또는 `ReentrantLock` (products.stock)
-- **쿠폰 발급**: `synchronized` 또는 `ReentrantLock` (coupon_events.issued_quantity)
-- **잔액 차감**: `synchronized` 또는 `ReentrantLock` (users.balance)
-
----
-
-## 8. 테이블 요약
-
-| 테이블        | 행 수  | 주요 용도         | 동시성 제어                |
-| ------------- | ------ | ----------------- | -------------------------- |
-| users         | 소규모 | 사용자, 잔액 관리 | synchronized/ReentrantLock |
-| products      | 소규모 | 상품, 재고 관리   | synchronized/ReentrantLock |
-| cart_items    | 중간   | 장바구니          | -                          |
-| orders        | 대규모 | 주문 이력         | -                          |
-| order_items   | 대규모 | 주문 상품 상세    | -                          |
-| coupon_events | 소규모 | 쿠폰 이벤트       | synchronized/ReentrantLock |
-| user_coupons  | 중간   | 발급된 쿠폰       | -                          |
-
----
 
 ## 변경 이력
 
