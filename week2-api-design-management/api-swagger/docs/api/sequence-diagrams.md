@@ -253,34 +253,6 @@ sequenceDiagram
 
 ---
 
-### 3.3 잔액 충전
-
-```mermaid
-sequenceDiagram
-    actor 고객
-    participant API
-    participant PaymentService
-    participant DB
-
-    고객->>API: POST /balance/charge<br/>{userId, amount}
-    API->>PaymentService: chargeBalance()
-
-    Note over PaymentService,DB: 트랜잭션 시작
-
-    PaymentService->>DB: 사용자 조회 (synchronized/ReentrantLock)
-    PaymentService->>DB: UPDATE users<br/>SET balance = balance + amount
-
-    Note over PaymentService,DB: 트랜잭션 커밋
-
-    DB-->>PaymentService: 충전 완료
-    PaymentService-->>API: BalanceResponse
-    API-->>고객: 200 OK
-```
-
-**Related**: US-PAY-002
-
----
-
 ## 4. 쿠폰 발급
 
 ### 4.1 선착순 쿠폰 발급 (성공)
@@ -288,41 +260,41 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
+    participant CouponController
     participant CouponService
-    participant DB
+    participant CouponRepository
 
-    고객->>API: POST /coupons/{eventId}/issue<br/>{userId}
-    API->>CouponService: issueCoupon()
+    고객->>CouponController: POST /coupons/{eventId}/issue<br/>{userId}
+    CouponController->>CouponService: issueCoupon()
 
-    Note over CouponService,DB: 트랜잭션 시작
+    Note over CouponService,CouponRepository: 트랜잭션 시작
 
-    CouponService->>DB: 쿠폰 이벤트 조회 (synchronized/ReentrantLock)
+    CouponService->>CouponRepository: 쿠폰 이벤트 조회 (synchronized/ReentrantLock)
 
     alt 쿠폰 소진
-        DB-->>CouponService: issued_quantity >= total_quantity
-        Note over CouponService,DB: 트랜잭션 롤백
-        CouponService-->>API: 409 Conflict
-        API-->>고객: 쿠폰 소진
+        CouponRepository-->>CouponService: issued_quantity >= total_quantity
+        Note over CouponService,CouponRepository: 트랜잭션 롤백
+        CouponService-->>CouponController: 409 Conflict
+        CouponController-->>고객: 쿠폰 소진
 
     else 발급 가능
-        CouponService->>DB: 중복 발급 확인<br/>(user_id, coupon_event_id)
+        CouponService->>CouponRepository: 중복 발급 확인<br/>(user_id, coupon_event_id)
 
         alt 이미 발급받음
-            DB-->>CouponService: 중복 발급
-            Note over CouponService,DB: 트랜잭션 롤백
-            CouponService-->>API: 400 Bad Request
-            API-->>고객: 중복 발급
+            CouponRepository-->>CouponService: 중복 발급
+            Note over CouponService,CouponRepository: 트랜잭션 롤백
+            CouponService-->>CouponController: 400 Bad Request
+            CouponController-->>고객: 중복 발급
 
         else 발급 진행
-            CouponService->>DB: INSERT INTO user_coupons
-            CouponService->>DB: UPDATE coupon_events<br/>SET issued_quantity = issued_quantity + 1
+            CouponService->>CouponRepository: INSERT INTO user_coupons
+            CouponService->>CouponRepository: UPDATE coupon_events<br/>SET issued_quantity = issued_quantity + 1
 
-            Note over CouponService,DB: 트랜잭션 커밋
+            Note over CouponService,CouponRepository: 트랜잭션 커밋
 
-            DB-->>CouponService: 발급 완료
-            CouponService-->>API: UserCouponResponse
-            API-->>고객: 201 Created
+            CouponRepository-->>CouponService: 발급 완료
+            CouponService-->>CouponController: UserCouponResponse
+            CouponController-->>고객: 201 Created
         end
     end
 ```
@@ -336,17 +308,17 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
+    participant CouponController
     participant CouponService
-    participant DB
+    participant CouponRepository
 
-    고객->>API: GET /coupons?userId=1
-    API->>CouponService: getUserCoupons(userId)
-    CouponService->>DB: SELECT * FROM user_coupons<br/>WHERE user_id = 1<br/>ORDER BY issued_at DESC
-    DB-->>CouponService: 쿠폰 목록
+    고객->>CouponController: GET /coupons?userId=1
+    CouponController->>CouponService: getUserCoupons(userId)
+    CouponService->>CouponRepository: SELECT * FROM user_coupons<br/>WHERE user_id = 1<br/>ORDER BY issued_at DESC
+    CouponRepository-->>CouponService: 쿠폰 목록
     CouponService->>CouponService: 사용 가능/만료/사용됨 구분
-    CouponService-->>API: UserCouponListResponse
-    API-->>고객: 200 OK
+    CouponService-->>CouponController: UserCouponListResponse
+    CouponController-->>고객: 200 OK
 ```
 
 **Related**: US-COUP-002
