@@ -116,24 +116,56 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
-    participant CartService
-    participant DB
+    participant Controller as CartController
+    participant Service as CartService
+    participant CartRepo as CartItemRepository
+    participant ProductRepo as ProductRepository
 
-    고객->>API: POST /cart/items<br/>{userId, productId, quantity}
-    API->>CartService: addCartItem()
+    고객->>Controller: POST /api/v1/cart/items<br/>{userId, productId, quantity}
+    activate Controller
 
-    CartService->>DB: 상품 존재 & 재고 확인
+    Controller->>Service: addCartItem(request)
+    activate Service
 
-    alt 재고 부족
-        DB-->>CartService: stock < quantity
-        CartService-->>API: 409 Conflict
-        API-->>고객: 재고 부족
+    Note over Service: 1. 상품 존재 & 재고 확인
+    Service->>ProductRepo: findById(productId)
+    activate ProductRepo
+
+    alt 상품 없음
+        ProductRepo-->>Service: Empty
+        Service-->>Controller: throw ProductNotFoundException
+        Controller-->>고객: 404 Not Found
+    else 재고 부족
+        ProductRepo-->>Service: Product (stock < quantity)
+        Service-->>Controller: throw InsufficientStockException
+        Controller-->>고객: 409 Conflict
     else 정상
-        CartService->>DB: INSERT or UPDATE cart_items
-        DB-->>CartService: 저장 완료
-        CartService-->>API: CartItemResponse
-        API-->>고객: 201 Created
+        ProductRepo-->>Service: Product
+        deactivate ProductRepo
+
+        Note over Service: 2. 장바구니 중복 체크
+        Service->>CartRepo: findByUserIdAndProductId(userId, productId)
+        activate CartRepo
+
+        alt 이미 존재
+            CartRepo-->>Service: CartItem
+            Service->>Service: 수량 증가
+            Service->>CartRepo: save(cartItem)
+            Note over CartRepo: UPDATE cart_items SET quantity = ?
+        else 신규
+            CartRepo-->>Service: Empty
+            Service->>Service: 신규 생성
+            Service->>CartRepo: save(cartItem)
+            Note over CartRepo: INSERT INTO cart_items
+        end
+
+        CartRepo-->>Service: CartItem
+        deactivate CartRepo
+
+        Service-->>Controller: CartItemResponse
+        deactivate Service
+        Controller-->>고객: 201 Created
+        deactivate Controller
     end
 ```
 
