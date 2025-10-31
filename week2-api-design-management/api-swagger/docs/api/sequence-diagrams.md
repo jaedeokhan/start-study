@@ -15,16 +15,27 @@
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
-    participant ProductService
-    participant DB
+    participant Controller as ProductController
+    participant Service as ProductService
+    participant Repository as ProductRepository
 
-    고객->>API: GET /products
-    API->>ProductService: getProducts()
-    ProductService->>DB: SELECT * FROM products
-    DB-->>ProductService: 상품 목록
-    ProductService-->>API: ProductListResponse
-    API-->>고객: 200 OK
+    고객->>Controller: GET /api/v1/products?page=0&size=20
+    activate Controller
+
+    Controller->>Service: getProducts(page, size)
+    activate Service
+
+    Service->>Repository: findAll(PageRequest)
+    activate Repository
+    Repository-->>Service: Page<Product>
+    deactivate Repository
+
+    Service->>Service: 응답 변환
+    Service-->>Controller: ProductListResponse
+    deactivate Service
+
+    Controller-->>고객: 200 OK
+    deactivate Controller
 ```
 
 **Related**: US-PROD-001, FR-PROD-001~005
@@ -36,16 +47,30 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
-    participant ProductService
-    participant DB
+    participant Controller as ProductController
+    participant Service as ProductService
+    participant Repository as ProductRepository
 
-    고객->>API: GET /products/popular
-    API->>ProductService: getPopularProducts()
-    ProductService->>DB: SELECT product_id, SUM(quantity)<br/>FROM order_items oi<br/>JOIN orders o ON oi.order_id = o.id<br/>WHERE o.created_at >= NOW() - 3일<br/>GROUP BY product_id<br/>LIMIT 5
-    DB-->>ProductService: 인기 상품 통계
-    ProductService-->>API: PopularProductsResponse
-    API-->>고객: 200 OK
+    고객->>Controller: GET /api/v1/products/popular
+    activate Controller
+
+    Controller->>Service: getPopularProducts()
+    activate Service
+
+    Note over Service: 최근 3일 집계
+
+    Service->>Repository: findPopularProducts(startDate, limit)
+    activate Repository
+    Note over Repository: SELECT oi.product_id, SUM(quantity)<br/>FROM order_items oi<br/>JOIN orders o ON oi.order_id = o.id<br/>WHERE o.created_at >= ?<br/>GROUP BY oi.product_id<br/>ORDER BY SUM(quantity) DESC<br/>LIMIT 5
+    Repository-->>Service: List<PopularProductDto>
+    deactivate Repository
+
+    Service->>Service: 응답 변환
+    Service-->>Controller: PopularProductsResponse
+    deactivate Service
+
+    Controller-->>고객: 200 OK
+    deactivate Controller
 ```
 
 **Related**: US-PROD-003, FR-STAT-001~003
@@ -59,17 +84,27 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor 고객
-    participant API
-    participant CartService
-    participant DB
+    participant Controller as CartController
+    participant Service as CartService
+    participant Repository as CartItemRepository
 
-    고객->>API: GET /cart?userId=1
-    API->>CartService: getCart(userId)
-    CartService->>DB: SELECT * FROM cart_items<br/>WHERE user_id = 1
-    DB-->>CartService: 장바구니 항목
-    CartService->>CartService: 총액 계산
-    CartService-->>API: CartResponse
-    API-->>고객: 200 OK
+    고객->>Controller: GET /api/v1/cart?userId=1
+    activate Controller
+
+    Controller->>Service: getCart(userId)
+    activate Service
+
+    Service->>Repository: findByUserId(userId)
+    activate Repository
+    Repository-->>Service: List<CartItem>
+    deactivate Repository
+
+    Service->>Service: 총액 계산 및 응답 변환
+    Service-->>Controller: CartResponse
+    deactivate Service
+
+    Controller-->>고객: 200 OK
+    deactivate Controller
 ```
 
 **Related**: US-CART-002
