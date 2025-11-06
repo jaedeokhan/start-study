@@ -1,5 +1,9 @@
 package com.ecommerce.presentation.controller;
 
+import com.ecommerce.application.usecase.cart.AddCartItemUseCase;
+import com.ecommerce.application.usecase.cart.GetCartItemsUseCase;
+import com.ecommerce.application.usecase.cart.RemoveCartItemUseCase;
+import com.ecommerce.application.usecase.cart.UpdateCartItemQuantityUseCase;
 import com.ecommerce.presentation.api.CartApi;
 import com.ecommerce.presentation.dto.cart.AddCartItemRequest;
 import com.ecommerce.presentation.dto.cart.AddCartItemResponse;
@@ -8,45 +12,30 @@ import com.ecommerce.presentation.dto.cart.UpdateCartItemRequest;
 import com.ecommerce.presentation.dto.cart.UpdateCartItemResponse;
 import com.ecommerce.presentation.dto.common.ApiResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
+/**
+ * 장바구니 API Controller
+ * - UseCase를 통한 비즈니스 로직 실행
+ */
 @RestController
 @RequestMapping("/api/v1/cart")
+@RequiredArgsConstructor
 public class CartController implements CartApi {
+    // ✅ UseCase 주입
+    private final GetCartItemsUseCase getCartItemsUseCase;
+    private final AddCartItemUseCase addCartItemUseCase;
+    private final UpdateCartItemQuantityUseCase updateCartItemQuantityUseCase;
+    private final RemoveCartItemUseCase removeCartItemUseCase;
 
     @GetMapping
     @Override
     public ResponseEntity<ApiResponse<CartResponse>> getCart(@RequestParam Long userId) {
-        CartResponse data = new CartResponse(
-                1L,
-                List.of(
-                        new CartResponse.CartItem(
-                                1L,
-                                1L,
-                                "노트북",
-                                1500000L,
-                                2,
-                                3000000L,
-                                50
-                        ),
-                        new CartResponse.CartItem(
-                                2L,
-                                2L,
-                                "마우스",
-                                30000L,
-                                1,
-                                30000L,
-                                100
-                        )
-                ),
-                3030000L,
-                2
-        );
-        return ResponseEntity.ok(ApiResponse.of(data));
+        CartResponse response = getCartItemsUseCase.execute(userId);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     @PostMapping("/items")
@@ -54,15 +43,12 @@ public class CartController implements CartApi {
     public ResponseEntity<ApiResponse<AddCartItemResponse>> addCartItem(
             @Valid @RequestBody AddCartItemRequest request
     ) {
-        AddCartItemResponse data = new AddCartItemResponse(
-                1L,
-                request.getProductId(),
-                "노트북",
-                1500000L,
-                request.getQuantity(),
-                1500000L * request.getQuantity()
+        AddCartItemResponse response = addCartItemUseCase.execute(
+            request.getUserId(),
+            request.getProductId(),
+            request.getQuantity()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(data));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 
     @PatchMapping("/items/{cartItemId}")
@@ -71,20 +57,17 @@ public class CartController implements CartApi {
             @PathVariable Long cartItemId,
             @Valid @RequestBody UpdateCartItemRequest request
     ) {
-        UpdateCartItemResponse data = new UpdateCartItemResponse(
-                cartItemId,
-                1L,
-                "노트북",
-                1500000L,
-                request.getQuantity(),
-                1500000L * request.getQuantity()
+        UpdateCartItemResponse response = updateCartItemQuantityUseCase.execute(
+            cartItemId,
+            request.getQuantity()
         );
-        return ResponseEntity.ok(ApiResponse.of(data));
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     @DeleteMapping("/items/{cartItemId}")
     @Override
     public ResponseEntity<Void> deleteCartItem(@PathVariable Long cartItemId) {
+        removeCartItemUseCase.execute(cartItemId);
         return ResponseEntity.noContent().build();
     }
 }
