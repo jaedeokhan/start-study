@@ -2,7 +2,7 @@ package com.ecommerce.integration;
 
 import com.ecommerce.application.usecase.coupon.IssueCouponUseCase;
 import com.ecommerce.application.usecase.order.CreateOrderUseCase;
-import com.ecommerce.application.usecase.payment.ChargeBalanceUseCase;
+import com.ecommerce.application.usecase.point.ChargePointUseCase;
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.DiscountType;
@@ -11,6 +11,7 @@ import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.memory.*;
+import com.ecommerce.infrastructure.repository.InMemoryPointHistoryRepository;
 import com.ecommerce.presentation.dto.coupon.IssueCouponResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,7 +30,7 @@ class ConcurrencyIntegrationTest {
 
     private IssueCouponUseCase issueCouponUseCase;
     private CreateOrderUseCase createOrderUseCase;
-    private ChargeBalanceUseCase chargeBalanceUseCase;
+    private ChargePointUseCase chargePointUseCase;
 
     private InMemoryCouponEventRepository couponEventRepository;
     private InMemoryUserCouponRepository userCouponRepository;
@@ -37,6 +38,7 @@ class ConcurrencyIntegrationTest {
     private InMemoryUserRepository userRepository;
     private InMemoryCartRepository cartRepository;
     private InMemoryOrderRepository orderRepository;
+    private InMemoryPointHistoryRepository pointHistoryRepository;
 
     @BeforeEach
     void setUp() {
@@ -46,6 +48,7 @@ class ConcurrencyIntegrationTest {
         userRepository = new InMemoryUserRepository();
         cartRepository = new InMemoryCartRepository();
         orderRepository = new InMemoryOrderRepository();
+        pointHistoryRepository = new InMemoryPointHistoryRepository();
 
         issueCouponUseCase = new IssueCouponUseCase(couponEventRepository, userCouponRepository);
         createOrderUseCase = new CreateOrderUseCase(
@@ -54,9 +57,10 @@ class ConcurrencyIntegrationTest {
             userRepository,
             userCouponRepository,
             couponEventRepository,
-            orderRepository
+            orderRepository,
+            pointHistoryRepository
         );
-        chargeBalanceUseCase = new ChargeBalanceUseCase(userRepository);
+        chargePointUseCase = new ChargePointUseCase(userRepository, pointHistoryRepository);
     }
 
     @Test
@@ -169,8 +173,8 @@ class ConcurrencyIntegrationTest {
     }
 
     @Test
-    @DisplayName("동시성 시나리오 3: 동일 사용자가 동시에 여러 번 잔액 충전")
-    void concurrentBalanceCharge() throws InterruptedException {
+    @DisplayName("동시성 시나리오 3: 동일 사용자가 동시에 여러 번 포인트 충전")
+    void concurrentPointCharge() throws InterruptedException {
         // given
         User user = userRepository.save(new User(1L, "사용자1", 0));
 
@@ -183,7 +187,7 @@ class ConcurrencyIntegrationTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    chargeBalanceUseCase.execute(1L, chargeAmount);
+                    chargePointUseCase.execute(1L, chargeAmount);
                 } finally {
                     latch.countDown();
                 }
@@ -195,7 +199,7 @@ class ConcurrencyIntegrationTest {
 
         // then - 모든 충전이 정확히 반영되어야 함
         User result = userRepository.findById(1L).orElseThrow();
-        assertThat(result.getBalance()).isEqualTo(100000);  // 1000 * 100
+        assertThat(result.getPointBalance()).isEqualTo(100000);  // 1000 * 100
     }
 
     @Test

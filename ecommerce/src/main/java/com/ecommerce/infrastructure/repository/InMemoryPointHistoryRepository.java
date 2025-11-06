@@ -42,7 +42,14 @@ public class InMemoryPointHistoryRepository implements PointHistoryRepository {
     public List<PointHistory> findByUserId(Long userId) {
         return store.values().stream()
             .filter(history -> history.getUserId().equals(userId))
-            .sorted((h1, h2) -> h2.getCreatedAt().compareTo(h1.getCreatedAt())) // 최신순
+            .sorted((h1, h2) -> {
+                // createdAt이 같으면 ID로 내림차순 정렬 (최신순)
+                int timeCompare = h2.getCreatedAt().compareTo(h1.getCreatedAt());
+                if (timeCompare == 0) {
+                    return h2.getId().compareTo(h1.getId());
+                }
+                return timeCompare;
+            })
             .collect(Collectors.toList());
     }
 
@@ -50,7 +57,14 @@ public class InMemoryPointHistoryRepository implements PointHistoryRepository {
     public List<PointHistory> findByUserIdWithPagination(Long userId, int offset, int limit) {
         return store.values().stream()
             .filter(history -> history.getUserId().equals(userId))
-            .sorted((h1, h2) -> h2.getCreatedAt().compareTo(h1.getCreatedAt())) // 최신순
+            .sorted((h1, h2) -> {
+                // createdAt이 같으면 ID로 내림차순 정렬 (최신순)
+                int timeCompare = h2.getCreatedAt().compareTo(h1.getCreatedAt());
+                if (timeCompare == 0) {
+                    return h2.getId().compareTo(h1.getId());
+                }
+                return timeCompare;
+            })
             .skip(offset)
             .limit(limit)
             .collect(Collectors.toList());
