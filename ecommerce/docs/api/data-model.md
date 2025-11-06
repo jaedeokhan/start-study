@@ -12,15 +12,16 @@
 
 ## 1. 개요
 
-### 1.1 포함 테이블 (총 7개)
-1. **users** - 사용자 및 잔액
-2. **products** - 상품 및 재고
-3. **cart_items** - 장바구니
-4. **orders** - 주문
-5. **order_items** - 주문 상품
-6. **coupon_events** - 쿠폰 이벤트
-7. **user_coupons** - 사용자 쿠폰
-8. **outbox** - outbox
+### 1.1 포함 테이블 (총 9개)
+1. **users** - 사용자 및 포인트
+2. **point_histories** - 포인트 이력
+3. **products** - 상품 및 재고
+4. **cart_items** - 장바구니
+5. **orders** - 주문
+6. **order_items** - 주문 상품
+7. **coupon_events** - 쿠폰 이벤트
+8. **user_coupons** - 사용자 쿠폰
+9. **outbox** - outbox
 
 ---
 
@@ -28,6 +29,7 @@
 
 ```mermaid
 erDiagram
+    USERS ||--o{ POINT_HISTORIES : has
     USERS ||--o{ CART_ITEMS : has
     USERS ||--o{ ORDERS : places
     USERS ||--o{ USER_COUPONS : owns
@@ -37,15 +39,27 @@ erDiagram
 
     ORDERS ||--|{ ORDER_ITEMS : includes
     ORDERS ||--o| USER_COUPONS : uses
+    ORDERS ||--o{ POINT_HISTORIES : records
 
     COUPON_EVENTS ||--o{ USER_COUPONS : generates
 
     USERS {
         bigint id PK
         varchar name
-        bigint balance
+        bigint point_balance
         datetime created_at
         datetime updated_at
+    }
+
+    POINT_HISTORIES {
+        bigint id PK
+        bigint user_id FK
+        bigint point_amount
+        varchar transaction_type
+        bigint balance_after
+        bigint order_id FK
+        varchar description
+        datetime created_at
     }
 
     PRODUCTS {
@@ -129,18 +143,18 @@ erDiagram
 
 **테이블명**: `users`
 
-| 컬럼명     | 타입         | NULL | 기본값            | 설명           |
-| ---------- | ------------ | ---- | ----------------- | -------------- |
-| id         | BIGINT       | NO   | AUTO_INCREMENT    | 사용자 ID (PK) |
-| name       | VARCHAR(100) | NO   | -                 | 사용자 이름    |
-| balance    | BIGINT       | NO   | 0                 | 잔액 (원 단위) |
-| created_at | DATETIME     | NO   | CURRENT_TIMESTAMP | 생성 일시      |
-| updated_at | DATETIME     | NO   | CURRENT_TIMESTAMP | 수정 일시      |
+| 컬럼명        | 타입         | NULL | 기본값            | 설명              |
+| ------------- | ------------ | ---- | ----------------- | ----------------- |
+| id            | BIGINT       | NO   | AUTO_INCREMENT    | 사용자 ID (PK)    |
+| name          | VARCHAR(100) | NO   | -                 | 사용자 이름       |
+| point_balance | BIGINT       | NO   | 0                 | 포인트 (원 단위)  |
+| created_at    | DATETIME     | NO   | CURRENT_TIMESTAMP | 생성 일시         |
+| updated_at    | DATETIME     | NO   | CURRENT_TIMESTAMP | 수정 일시         |
 
 **제약 조건**:
 
 - PRIMARY KEY: `id`
-- CHECK: `balance >= 0`
+- CHECK: `point_balance >= 0`
 
 **인덱스**:
 
@@ -148,7 +162,46 @@ erDiagram
 
 ---
 
-### 3.2 PRODUCTS (상품)
+### 3.2 POINT_HISTORIES (포인트 이력)
+
+**테이블명**: `point_histories`
+
+| 컬럼명           | 타입         | NULL | 기본값            | 설명                               |
+| ---------------- | ------------ | ---- | ----------------- | ---------------------------------- |
+| id               | BIGINT       | NO   | AUTO_INCREMENT    | 포인트 이력 ID (PK)                |
+| user_id          | BIGINT       | NO   | -                 | 사용자 ID (FK)                     |
+| point_amount     | BIGINT       | NO   | -                 | 포인트 변경량 (충전: 양수, 사용: 음수) |
+| transaction_type | VARCHAR(20)  | NO   | -                 | 거래 유형 (CHARGE, USE, REFUND)    |
+| balance_after    | BIGINT       | NO   | -                 | 거래 후 잔액                       |
+| order_id         | BIGINT       | YES  | NULL              | 주문 ID (FK, USE/REFUND 시)        |
+| description      | VARCHAR(255) | YES  | NULL              | 설명                               |
+| created_at       | DATETIME     | NO   | CURRENT_TIMESTAMP | 생성 일시                          |
+
+**제약 조건**:
+
+- PRIMARY KEY: `id`
+- CHECK: `transaction_type IN ('CHARGE', 'USE', 'REFUND')`
+
+**인덱스**:
+
+- PRIMARY: `id`
+- INDEX: `idx_point_histories_user_created` ON (`user_id`, `created_at` DESC)
+- INDEX: `idx_point_histories_order` ON (`order_id`)
+
+**참조 관계** (애플리케이션 레벨):
+
+- `user_id` → `users(id)`
+- `order_id` → `orders(id)` (nullable)
+
+**비즈니스 규칙**:
+
+- CHARGE: 포인트 충전, point_amount는 양수
+- USE: 포인트 사용 (주문 결제), point_amount는 음수, order_id 필수
+- REFUND: 포인트 환불 (주문 취소), point_amount는 양수, order_id 필수
+
+---
+
+### 3.3 PRODUCTS (상품)
 
 **테이블명**: `products`
 
@@ -412,13 +465,29 @@ CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, status);
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    balance BIGINT NOT NULL DEFAULT 0,
+    point_balance BIGINT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT chk_users_balance CHECK (balance >= 0)
+    CONSTRAINT chk_users_point_balance CHECK (point_balance >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 2. 상품
+-- 2. 포인트 이력
+CREATE TABLE point_histories (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    point_amount BIGINT NOT NULL,
+    transaction_type VARCHAR(20) NOT NULL,
+    balance_after BIGINT NOT NULL,
+    order_id BIGINT NULL,
+    description VARCHAR(255) NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_point_histories_type CHECK (transaction_type IN ('CHARGE', 'USE', 'REFUND'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_point_histories_user_created ON point_histories(user_id, created_at DESC);
+CREATE INDEX idx_point_histories_order ON point_histories(order_id);
+
+-- 3. 상품
 CREATE TABLE products (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(200) NOT NULL,
@@ -431,7 +500,7 @@ CREATE TABLE products (
     CONSTRAINT chk_products_stock CHECK (stock >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. 장바구니
+-- 4. 장바구니
 CREATE TABLE cart_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -442,7 +511,7 @@ CREATE TABLE cart_items (
 
 CREATE UNIQUE INDEX idx_cart_user_product ON cart_items(user_id, product_id);
 
--- 4. 쿠폰 이벤트
+-- 5. 쿠폰 이벤트
 CREATE TABLE coupon_events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -456,7 +525,7 @@ CREATE TABLE coupon_events (
     CONSTRAINT chk_coupon_quantity CHECK (total_quantity > 0 AND issued_quantity >= 0 AND issued_quantity <= total_quantity)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. 사용자 쿠폰
+-- 6. 사용자 쿠폰
 CREATE TABLE user_coupons (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -474,7 +543,7 @@ CREATE TABLE user_coupons (
 CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_id);
 CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, status);
 
--- 6. 주문
+-- 7. 주문
 CREATE TABLE orders (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
@@ -491,7 +560,7 @@ CREATE TABLE orders (
 CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
 CREATE INDEX idx_orders_created ON orders(created_at);
 
--- 7. 주문 항목
+-- 8. 주문 항목
 CREATE TABLE order_items (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL,
@@ -506,7 +575,7 @@ CREATE TABLE order_items (
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_product_created ON order_items(product_id, order_id);
 
--- 8. outbox
+-- 9. outbox
 CREATE TABLE outbox (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     aggregate_type VARCHAR(50) NOT NULL,           -- 이벤트 발생 엔티티 (ORDER, COUPON 등)
@@ -533,7 +602,7 @@ CREATE INDEX idx_outbox_aggregate ON outbox(aggregate_type, aggregate_id);
 
 ```sql
 -- 사용자
-INSERT INTO users (name, balance) VALUES
+INSERT INTO users (name, point_balance) VALUES
 ('김철수', 10000000),
 ('이영희', 5000000),
 ('박민수', 3000000);

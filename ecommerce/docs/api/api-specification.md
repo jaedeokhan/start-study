@@ -6,7 +6,7 @@
 3. [상품 API](#3-상품-api)
 4. [장바구니 API](#4-장바구니-api)
 5. [주문 API](#5-주문-api)
-6. [결제 API](#6-결제-api)
+6. [포인트 API](#6-포인트-api)
 7. [쿠폰 API](#7-쿠폰-api)
 8. [에러 코드](#8-에러-코드)
 
@@ -533,13 +533,13 @@ DELETE /api/v1/cart/items/1
 }
 ```
 
-400 Bad Request - 잔액 부족:
+400 Bad Request - 포인트 부족:
 ```json
 {
   "error": {
-    "code": "INSUFFICIENT_BALANCE",
-    "message": "잔액이 부족합니다.",
-    "details": "필요 금액: 2900000원, 현재 잔액: 1000000원"
+    "code": "INSUFFICIENT_POINT",
+    "message": "포인트가 부족합니다.",
+    "details": "필요 금액: 2900000원, 현재 포인트: 1000000원"
   },
   "timestamp": "2025-10-29T14:30:00"
 }
@@ -709,13 +709,13 @@ GET /api/v1/orders/12345
 
 ---
 
-## 6. 결제 API
+## 6. 포인트 API
 
-### 6.1 잔액 조회
+### 6.1 포인트 조회
 
-**엔드포인트**: `GET /balance`
+**엔드포인트**: `GET /point`
 
-**설명**: 사용자의 현재 잔액을 조회합니다.
+**설명**: 사용자의 현재 포인트를 조회합니다.
 
 **Query Parameters**:
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -724,7 +724,7 @@ GET /api/v1/orders/12345
 
 **요청 예시**:
 ```http
-GET /api/v1/balance?userId=1
+GET /api/v1/point?userId=1
 ```
 
 **응답 예시** (200 OK):
@@ -732,7 +732,7 @@ GET /api/v1/balance?userId=1
 {
   "data": {
     "userId": 1,
-    "balance": 5000000,
+    "pointBalance": 5000000,
     "lastUpdatedAt": "2025-10-29T14:00:00"
   },
   "timestamp": "2025-10-29T14:30:00"
@@ -754,11 +754,11 @@ GET /api/v1/balance?userId=1
 
 ---
 
-### 6.2 잔액 충전
+### 6.2 포인트 충전
 
-**엔드포인트**: `POST /balance/charge`
+**엔드포인트**: `POST /point/charge`
 
-**설명**: 사용자의 잔액을 충전합니다.
+**설명**: 사용자의 포인트를 충전합니다.
 
 **요청 바디**:
 ```json
@@ -787,6 +787,63 @@ GET /api/v1/balance?userId=1
   "timestamp": "2025-10-29T14:30:00"
 }
 ```
+
+**Related**: US-PAY-002
+
+---
+
+### 6.3 포인트 이력 조회
+
+**엔드포인트**: `GET /point/history`
+
+**설명**: 사용자의 포인트 사용/충전 이력을 조회합니다.
+
+**Query Parameters**:
+| 파라미터 | 타입 | 필수 | 설명 |
+|---------|------|------|------|
+| userId | long | Y | 사용자 ID |
+
+**요청 예시**:
+```http
+GET /api/v1/point/history?userId=1
+```
+
+**응답 예시** (200 OK):
+```json
+{
+  "data": {
+    "userId": 1,
+    "histories": [
+      {
+        "id": 15,
+        "userId": 1,
+        "pointAmount": -2900000,
+        "transactionType": "USE",
+        "balanceAfter": 7100000,
+        "orderId": 12345,
+        "description": "주문 결제: 주문번호 12345",
+        "createdAt": "2025-10-29T14:30:00"
+      },
+      {
+        "id": 14,
+        "userId": 1,
+        "pointAmount": 1000000,
+        "transactionType": "CHARGE",
+        "balanceAfter": 10000000,
+        "orderId": null,
+        "description": "포인트 충전: 1000000원",
+        "createdAt": "2025-10-29T10:00:00"
+      }
+    ],
+    "totalCount": 15
+  },
+  "timestamp": "2025-10-29T14:30:00"
+}
+```
+
+**Related**: US-PAY-008
+
+---
 
 **에러 응답**:
 
@@ -1033,13 +1090,13 @@ GET /api/v1/coupon-events
 | ORDER_NOT_FOUND | 404 | 주문을 찾을 수 없음 |
 | ORDER_CREATION_FAILED | 500 | 주문 생성 실패 |
 
-### 8.5 결제 관련 (5xxx)
+### 8.5 포인트 관련 (5xxx)
 
 | 에러 코드 | HTTP 상태 | 설명 |
 |----------|----------|------|
-| INSUFFICIENT_BALANCE | 400 | 잔액 부족 |
+| INSUFFICIENT_POINT | 400 | 포인트 부족 |
 | INVALID_AMOUNT | 400 | 잘못된 금액 (0 이하) |
-| PAYMENT_FAILED | 500 | 결제 처리 실패 |
+| POINT_OPERATION_FAILED | 500 | 포인트 처리 실패 |
 | USER_NOT_FOUND | 404 | 사용자를 찾을 수 없음 |
 
 ### 8.6 쿠폰 관련 (6xxx)
@@ -1081,7 +1138,14 @@ GET /api/v1/coupon-events
 
 #### PaymentMethod (결제 수단)
 ```
-- BALANCE: 잔액 결제
+- POINT: 포인트 결제
+```
+
+#### TransactionType (거래 유형)
+```
+- CHARGE: 포인트 충전
+- USE: 포인트 사용
+- REFUND: 포인트 환불
 ```
 
 ### 9.2 페이지네이션 공통 구조
@@ -1111,7 +1175,7 @@ GET /api/v1/coupon-events
 
 1. **POST /orders**: 재고 차감 시 `synchronized` 또는 `ReentrantLock` 적용
 2. **POST /coupons/{couponEventId}/issue**: 쿠폰 수량 차감 시 `synchronized` 또는 `ReentrantLock` 적용
-3. **POST /balance/charge**: 잔액 업데이트 시 `synchronized` 또는 `ReentrantLock` 적용
+3. **POST /point/charge**: 포인트 업데이트 시 `synchronized` 또는 `ReentrantLock` 적용
 
 ### 9.5 성능 고려사항
 
