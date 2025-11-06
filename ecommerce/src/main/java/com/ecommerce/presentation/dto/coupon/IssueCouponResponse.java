@@ -1,7 +1,9 @@
 package com.ecommerce.presentation.dto.coupon;
 
-import com.ecommerce.enums.CouponStatus;
-import com.ecommerce.enums.DiscountType;
+import com.ecommerce.domain.coupon.CouponEvent;
+import com.ecommerce.domain.coupon.UserCoupon;
+import com.ecommerce.domain.coupon.CouponStatus;
+import com.ecommerce.domain.coupon.DiscountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -50,4 +52,21 @@ public class IssueCouponResponse {
 
     @Schema(description = "만료 시간", example = "2025-11-30T23:59:59")
     private LocalDateTime expiresAt;
+
+    public static IssueCouponResponse from(UserCoupon userCoupon, CouponEvent couponEvent) {
+        return new IssueCouponResponse(
+            userCoupon.getId(),
+            couponEvent.getId(),
+            userCoupon.getUserId(),
+            couponEvent.getName(),
+            couponEvent.getDiscountType(),
+            couponEvent.getDiscountType() == DiscountType.AMOUNT ? couponEvent.getDiscountAmount() : null,
+            couponEvent.getDiscountType() == DiscountType.RATE ? couponEvent.getDiscountRate() : null,
+            couponEvent.getDiscountType() == DiscountType.RATE ? (long) couponEvent.getMaxDiscountAmount() : null,
+            userCoupon.getStatus(couponEvent, LocalDateTime.now()),
+            userCoupon.getIssuedAt(),
+            userCoupon.getUsedAt(),
+            userCoupon.getValidUntil()
+        );
+    }
 }

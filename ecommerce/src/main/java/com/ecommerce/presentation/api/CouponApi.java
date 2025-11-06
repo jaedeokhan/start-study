@@ -6,7 +6,7 @@ import com.ecommerce.presentation.dto.coupon.CouponEventListResponse;
 import com.ecommerce.presentation.dto.coupon.UserCouponListResponse;
 import com.ecommerce.presentation.dto.coupon.IssueCouponResponse;
 import com.ecommerce.presentation.dto.coupon.IssueCouponRequest;
-import com.ecommerce.enums.CouponStatus;
+import com.ecommerce.domain.coupon.CouponStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
