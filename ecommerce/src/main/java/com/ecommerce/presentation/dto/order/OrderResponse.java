@@ -1,5 +1,6 @@
 package com.ecommerce.presentation.dto.order;
 
+import com.ecommerce.domain.order.Order;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -102,5 +104,34 @@ public class OrderResponse {
 
         @Schema(description = "결제 완료 시간", example = "2025-10-29T14:30:00")
         private LocalDateTime paidAt;
+    }
+
+    public static OrderResponse from(Order order, java.util.List<com.ecommerce.domain.order.OrderItem> domainOrderItems) {
+        List<OrderItem> items = domainOrderItems.stream()
+            .map(item -> new OrderItem(
+                item.getId(),
+                item.getProductId(),
+                item.getProductName(),
+                item.getPrice(),
+                item.getQuantity(),
+                item.getSubtotal()
+            ))
+            .collect(Collectors.toList());
+
+        PaymentInfo paymentInfo = new PaymentInfo(order.getId(), "BALANCE", order.getFinalAmount(), order.getCreatedAt());
+
+        return new OrderResponse(
+            order.getId(),
+            order.getUserId(),
+            order.getStatus().name(),
+            items,
+            order.getOriginalAmount(),
+            order.getDiscountAmount(),
+            order.getFinalAmount(),
+            null, // couponUsed - simplified
+            paymentInfo,
+            order.getCreatedAt(),
+            order.getUpdatedAt()
+        );
     }
 }

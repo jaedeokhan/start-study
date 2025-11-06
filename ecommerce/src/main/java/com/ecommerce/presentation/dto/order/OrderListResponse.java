@@ -1,5 +1,6 @@
 package com.ecommerce.presentation.dto.order;
 
+import com.ecommerce.domain.order.Order;
 import com.ecommerce.presentation.dto.common.PaginationInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -46,5 +48,23 @@ public class OrderListResponse {
 
         @Schema(description = "주문 생성 시간", example = "2025-10-29T14:30:00")
         private LocalDateTime createdAt;
+    }
+
+    public static OrderListResponse from(List<Order> orders, int page, int size, int totalElements, int totalPages) {
+        List<OrderSummary> orderSummaries = orders.stream()
+            .map(order -> new OrderSummary(
+                order.getId(),
+                order.getStatus().name(),
+                order.getOriginalAmount(),
+                order.getDiscountAmount(),
+                order.getFinalAmount(),
+                0, // itemCount - simplified, would need OrderItem count query
+                order.getCreatedAt()
+            ))
+            .collect(Collectors.toList());
+
+        PaginationInfo pagination = new PaginationInfo(page, totalPages, totalElements, size);
+
+        return new OrderListResponse(orderSummaries, pagination);
     }
 }
