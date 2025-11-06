@@ -10,6 +10,6 @@ import java.util.Optional;
 public interface UserRepository {
     Optional<User> findById(Long id);
     User save(User user);
-    void chargeBalance(Long userId, long amount);
-    void deductBalance(Long userId, long amount);
+    void chargePoint(Long userId, long amount);
+    void usePoint(Long userId, long amount);
 }

@@ -5,7 +5,7 @@ import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.cart.exception.CartItemNotFoundException;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
 import com.ecommerce.domain.order.exception.OrderNotFoundException;
-import com.ecommerce.domain.payment.exception.InsufficientBalanceException;
+import com.ecommerce.domain.payment.exception.InsufficientPointException;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
 import com.ecommerce.domain.coupon.exception.CouponSoldOutException;
@@ -84,14 +84,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 결제 관련 예외
+     * 포인트 관련 예외
      */
-    @ExceptionHandler(InsufficientBalanceException.class)
-    public ResponseEntity<ApiResponse<Void>> handleInsufficientBalance(InsufficientBalanceException ex) {
-        log.error("InsufficientBalanceException: {}", ex.getMessage());
+    @ExceptionHandler(InsufficientPointException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInsufficientPoint(InsufficientPointException ex) {
+        log.error("InsufficientPointException: {}", ex.getMessage());
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
-            .body(ApiResponse.error("INSUFFICIENT_BALANCE", ex.getMessage()));
+            .body(ApiResponse.error("INSUFFICIENT_POINT", ex.getMessage()));
     }
 
     @ExceptionHandler(UserNotFoundException.class)
