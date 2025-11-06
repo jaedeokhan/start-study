@@ -1,6 +1,6 @@
 package com.ecommerce.infrastructure.memory;
 
-import com.ecommerce.domain.payment.exception.InsufficientBalanceException;
+import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,54 +36,54 @@ class InMemoryUserRepositoryTest {
         // then
         assertThat(found).isNotNull();
         assertThat(found.getName()).isEqualTo("사용자1");
-        assertThat(found.getBalance()).isEqualTo(10000);
+        assertThat(found.getPointBalance()).isEqualTo(10000);
     }
 
     @Test
-    @DisplayName("잔액 충전 - 단일 스레드")
-    void chargeBalanceSingleThread() {
+    @DisplayName("포인트 충전 - 단일 스레드")
+    void chargePointSingleThread() {
         // given
         User user = new User(null, "사용자1", 10000);
         User saved = repository.save(user);
 
         // when
-        repository.chargeBalance(saved.getId(), 5000);
+        repository.chargePoint(saved.getId(), 5000);
 
         // then
         User found = repository.findById(saved.getId()).orElseThrow();
-        assertThat(found.getBalance()).isEqualTo(15000);
+        assertThat(found.getPointBalance()).isEqualTo(15000);
     }
 
     @Test
-    @DisplayName("잔액 차감 - 단일 스레드")
-    void deductBalanceSingleThread() {
+    @DisplayName("포인트 사용 - 단일 스레드")
+    void usePointSingleThread() {
         // given
         User user = new User(null, "사용자1", 10000);
         User saved = repository.save(user);
 
         // when
-        repository.deductBalance(saved.getId(), 3000);
+        repository.usePoint(saved.getId(), 3000);
 
         // then
         User found = repository.findById(saved.getId()).orElseThrow();
-        assertThat(found.getBalance()).isEqualTo(7000);
+        assertThat(found.getPointBalance()).isEqualTo(7000);
     }
 
     @Test
-    @DisplayName("잔액 부족 시 차감 실패")
-    void deductBalanceFail() {
+    @DisplayName("포인트 부족 시 사용 실패")
+    void usePointFail() {
         // given
         User user = new User(null, "사용자1", 10000);
         User saved = repository.save(user);
 
         // when & then
-        assertThatThrownBy(() -> repository.deductBalance(saved.getId(), 10001))
-            .isInstanceOf(InsufficientBalanceException.class);
+        assertThatThrownBy(() -> repository.usePoint(saved.getId(), 10001))
+            .isInstanceOf(InsufficientPointException.class);
     }
 
     @Test
-    @DisplayName("잔액 충전 - 동시성 제어 검증 (100개 스레드가 각각 100원씩 충전)")
-    void chargeBalanceConcurrency() throws InterruptedException {
+    @DisplayName("포인트 충전 - 동시성 제어 검증 (100개 스레드가 각각 100원씩 충전)")
+    void chargePointConcurrency() throws InterruptedException {
         // given
         User user = new User(null, "사용자1", 0);
         User saved = repository.save(user);
@@ -97,7 +97,7 @@ class InMemoryUserRepositoryTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    repository.chargeBalance(saved.getId(), chargeAmount);
+                    repository.chargePoint(saved.getId(), chargeAmount);
                 } finally {
                     latch.countDown();
                 }
@@ -109,18 +109,18 @@ class InMemoryUserRepositoryTest {
 
         // then
         User result = repository.findById(saved.getId()).orElseThrow();
-        assertThat(result.getBalance()).isEqualTo(10000);  // 100 * 100
+        assertThat(result.getPointBalance()).isEqualTo(10000);  // 100 * 100
     }
 
     @Test
-    @DisplayName("잔액 차감 - 동시성 제어 검증 (50개 스레드가 각각 100원씩 차감)")
-    void deductBalanceConcurrency() throws InterruptedException {
+    @DisplayName("포인트 사용 - 동시성 제어 검증 (50개 스레드가 각각 100원씩 사용)")
+    void usePointConcurrency() throws InterruptedException {
         // given
         User user = new User(null, "사용자1", 10000);
         User saved = repository.save(user);
 
         int threadCount = 50;
-        int deductAmount = 100;
+        int useAmount = 100;
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
 
@@ -131,9 +131,9 @@ class InMemoryUserRepositoryTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    repository.deductBalance(saved.getId(), deductAmount);
+                    repository.usePoint(saved.getId(), useAmount);
                     successCount.incrementAndGet();
-                } catch (InsufficientBalanceException e) {
+                } catch (InsufficientPointException e) {
                     failCount.incrementAndGet();
                 } finally {
                     latch.countDown();
@@ -147,21 +147,21 @@ class InMemoryUserRepositoryTest {
         // then
         User result = repository.findById(saved.getId()).orElseThrow();
 
-        // 10000원에서 50개 스레드가 각 100원씩 차감 (총 5000원 차감)
+        // 10000원에서 50개 스레드가 각 100원씩 사용 (총 5000원 사용)
         assertThat(successCount.get()).isEqualTo(50);
         assertThat(failCount.get()).isEqualTo(0);
-        assertThat(result.getBalance()).isEqualTo(5000);
+        assertThat(result.getPointBalance()).isEqualTo(5000);
     }
 
     @Test
-    @DisplayName("잔액 차감 - 동시성 제어 검증 with 부족 상황 (150개 스레드가 각 100원씩 차감)")
-    void deductBalanceConcurrencyWithInsufficientBalance() throws InterruptedException {
+    @DisplayName("포인트 사용 - 동시성 제어 검증 with 부족 상황 (150개 스레드가 각 100원씩 사용)")
+    void usePointConcurrencyWithInsufficientPoint() throws InterruptedException {
         // given
         User user = new User(null, "사용자1", 10000);
         User saved = repository.save(user);
 
         int threadCount = 150;
-        int deductAmount = 100;
+        int useAmount = 100;
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(threadCount);
 
@@ -172,9 +172,9 @@ class InMemoryUserRepositoryTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    repository.deductBalance(saved.getId(), deductAmount);
+                    repository.usePoint(saved.getId(), useAmount);
                     successCount.incrementAndGet();
-                } catch (InsufficientBalanceException e) {
+                } catch (InsufficientPointException e) {
                     failCount.incrementAndGet();
                 } finally {
                     latch.countDown();
@@ -188,16 +188,16 @@ class InMemoryUserRepositoryTest {
         // then
         User result = repository.findById(saved.getId()).orElseThrow();
 
-        // 10000원에서 150개 스레드가 각 100원씩 차감 시도
+        // 10000원에서 150개 스레드가 각 100원씩 사용 시도
         // 성공: 100개, 실패: 50개
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(50);
-        assertThat(result.getBalance()).isEqualTo(0);
+        assertThat(result.getPointBalance()).isEqualTo(0);
     }
 
     @Test
-    @DisplayName("동시에 충전과 차감이 발생하는 경우")
-    void chargeAndDeductConcurrently() throws InterruptedException {
+    @DisplayName("동시에 충전과 사용이 발생하는 경우")
+    void chargeAndUseConcurrently() throws InterruptedException {
         // given
         User user = new User(null, "사용자1", 10000);
         User saved = repository.save(user);
@@ -206,20 +206,20 @@ class InMemoryUserRepositoryTest {
         ExecutorService executorService = Executors.newFixedThreadPool(threadCount * 2);
         CountDownLatch latch = new CountDownLatch(threadCount * 2);
 
-        // when - 50개는 충전, 50개는 차감
+        // when - 50개는 충전, 50개는 사용
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    repository.chargeBalance(saved.getId(), 100);
+                    repository.chargePoint(saved.getId(), 100);
                 } finally {
                     latch.countDown();
                 }
             });
             executorService.submit(() -> {
                 try {
-                    repository.deductBalance(saved.getId(), 100);
-                } catch (InsufficientBalanceException e) {
-                    // 잔액 부족 시 무시
+                    repository.usePoint(saved.getId(), 100);
+                } catch (InsufficientPointException e) {
+                    // 포인트 부족 시 무시
                 } finally {
                     latch.countDown();
                 }
@@ -232,7 +232,7 @@ class InMemoryUserRepositoryTest {
         // then
         User result = repository.findById(saved.getId()).orElseThrow();
         // 10000 + (50 * 100) - (50 * 100) = 10000 (이론상)
-        // 실제로는 차감 실패가 있을 수 있으므로 >= 10000
-        assertThat(result.getBalance()).isGreaterThanOrEqualTo(10000);
+        // 실제로는 사용 실패가 있을 수 있으므로 >= 10000
+        assertThat(result.getPointBalance()).isGreaterThanOrEqualTo(10000);
     }
 }

@@ -1,11 +1,11 @@
-package com.ecommerce.config;
+package com.ecommerce.presentation.exception;
 
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.cart.exception.CartItemNotFoundException;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
 import com.ecommerce.domain.order.exception.OrderNotFoundException;
-import com.ecommerce.domain.payment.exception.InsufficientPointException;
+import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
 import com.ecommerce.domain.coupon.exception.CouponSoldOutException;

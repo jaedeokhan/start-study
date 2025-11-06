@@ -14,7 +14,7 @@ import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
 import com.ecommerce.domain.coupon.exception.CouponEventNotFoundException;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
-import com.ecommerce.domain.payment.exception.InsufficientPointException;
+import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
