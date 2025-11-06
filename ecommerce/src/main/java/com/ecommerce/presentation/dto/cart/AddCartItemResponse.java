@@ -1,5 +1,7 @@
 package com.ecommerce.presentation.dto.cart;
 
+import com.ecommerce.domain.cart.CartItem;
+import com.ecommerce.domain.product.Product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,4 +30,17 @@ public class AddCartItemResponse {
 
     @Schema(description = "소계", example = "3000000")
     private Long subtotal;
+
+    public static AddCartItemResponse from(CartItem cartItem, Product product) {
+        long subtotal = product.getPrice() * cartItem.getQuantity();
+
+        return new AddCartItemResponse(
+            cartItem.getId(),
+            product.getId(),
+            product.getName(),
+            product.getPrice(),
+            cartItem.getQuantity(),
+            subtotal
+        );
+    }
 }

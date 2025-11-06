@@ -1,11 +1,14 @@
 package com.ecommerce.presentation.dto.cart;
 
+import com.ecommerce.domain.product.Product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -50,5 +53,32 @@ public class CartResponse {
 
         @Schema(description = "재고", example = "50")
         private Integer stock;
+    }
+
+    public static CartResponse from(Long userId, List<com.ecommerce.domain.cart.CartItem> domainCartItems, Map<Long, Product> productMap) {
+        List<CartItem> items = domainCartItems.stream()
+            .map(domainCartItem -> {
+                Product product = productMap.get(domainCartItem.getProductId());
+                long subtotal = product.getPrice() * domainCartItem.getQuantity();
+
+                return new CartItem(
+                    domainCartItem.getId(),
+                    product.getId(),
+                    product.getName(),
+                    product.getPrice(),
+                    domainCartItem.getQuantity(),
+                    subtotal,
+                    product.getStock()
+                );
+            })
+            .collect(Collectors.toList());
+
+        long totalAmount = items.stream()
+            .mapToLong(CartItem::getSubtotal)
+            .sum();
+
+        int totalItems = items.size();
+
+        return new CartResponse(userId, items, totalAmount, totalItems);
     }
 }
