@@ -1,6 +1,6 @@
 package com.ecommerce.domain.user;
 
-import com.ecommerce.domain.payment.exception.InsufficientPointException;
+import com.ecommerce.domain.point.exception.InsufficientPointException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

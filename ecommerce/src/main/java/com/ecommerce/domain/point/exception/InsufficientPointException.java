@@ -1,4 +1,4 @@
-package com.ecommerce.domain.payment.exception;
+package com.ecommerce.domain.point.exception;
 
 public class InsufficientPointException extends RuntimeException {
     public InsufficientPointException(String message) {

@@ -1,6 +1,6 @@
 package com.ecommerce.domain.user;
 
-import com.ecommerce.domain.payment.exception.InsufficientPointException;
+import com.ecommerce.domain.point.exception.InsufficientPointException;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
