@@ -229,7 +229,7 @@ sequenceDiagram
         deactivate CouponService
     end
 
-    %% 4. 결제 처리 (동시성 제어)
+    %% 4. 포인트 결제 처리 (동시성 제어)
     OrderService->>PaymentService: processPayment(userId, finalAmount)
     activate PaymentService
     Note over PaymentService: 🔐 synchronized
@@ -239,8 +239,13 @@ sequenceDiagram
     deactivate Repositories
     PaymentService->>Repositories: save(user)
     activate Repositories
-    Note over Repositories: 잔액 차감
+    Note over Repositories: 포인트 차감
     Repositories-->>PaymentService: 결제 완료
+    deactivate Repositories
+    PaymentService->>Repositories: save(pointHistory)
+    activate Repositories
+    Note over Repositories: 포인트 이력 저장
+    Repositories-->>PaymentService: void
     deactivate Repositories
     PaymentService-->>OrderService: PaymentResult
     deactivate PaymentService
