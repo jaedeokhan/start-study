@@ -1,5 +1,6 @@
 package com.ecommerce.presentation.dto.product;
 
+import com.ecommerce.domain.product.Product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,6 +8,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -51,5 +54,23 @@ public class PopularProductResponse {
 
         @Schema(description = "종료일", example = "2025-10-29T00:00:00")
         private LocalDateTime endDate;
+    }
+
+    public static PopularProductResponse from(List<Product> products, Map<Long, Integer> salesCountMap, LocalDateTime threeDaysAgo) {
+        LocalDateTime now = LocalDateTime.now();
+        SalesPeriod period = new SalesPeriod(threeDaysAgo, now);
+
+        List<PopularProduct> popularProducts = products.stream()
+            .map(product -> new PopularProduct(
+                product.getId(),
+                product.getName(),
+                product.getPrice(),
+                product.getStock(),
+                salesCountMap.getOrDefault(product.getId(), 0),
+                period
+            ))
+            .collect(Collectors.toList());
+
+        return new PopularProductResponse(popularProducts);
     }
 }
