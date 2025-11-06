@@ -12,11 +12,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "주문 API", description = "주문 생성 및 조회 관련 API")
+@RequestMapping("/api/v1/orders")
 public interface OrderApi {
 
     @Operation(
@@ -45,6 +44,7 @@ public interface OrderApi {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
+    @PostMapping
     ResponseEntity<ApiResponse<OrderResponse>> createOrder(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "주문 생성 요청 정보",
@@ -65,6 +65,7 @@ public interface OrderApi {
                     content = @Content(schema = @Schema(implementation = OrderListResponse.class))
             )
     })
+    @GetMapping
     ResponseEntity<ApiResponse<OrderListResponse>> getOrders(
             @Parameter(description = "사용자 ID", example = "1", required = true)
             @RequestParam Long userId,
@@ -90,6 +91,7 @@ public interface OrderApi {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
+    @GetMapping("/{orderId}")
     ResponseEntity<ApiResponse<OrderResponse>> getOrder(
             @Parameter(description = "주문 ID", example = "12345", required = true)
             @PathVariable Long orderId

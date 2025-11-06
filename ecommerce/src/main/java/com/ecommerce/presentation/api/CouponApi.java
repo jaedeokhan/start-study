@@ -15,11 +15,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "쿠폰 API", description = "쿠폰 발급 및 조회 관련 API")
+@RequestMapping("/api/v1")
 public interface CouponApi {
 
     @Operation(
@@ -43,6 +42,7 @@ public interface CouponApi {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))
             )
     })
+    @PostMapping("/coupons/{couponEventId}/issue")
     ResponseEntity<ApiResponse<IssueCouponResponse>> issueCoupon(
             @Parameter(description = "쿠폰 이벤트 ID", example = "10", required = true)
             @PathVariable Long couponEventId,
@@ -61,6 +61,7 @@ public interface CouponApi {
                     content = @Content(schema = @Schema(implementation = UserCouponListResponse.class))
             )
     })
+    @GetMapping("/coupons")
     ResponseEntity<ApiResponse<UserCouponListResponse>> getCoupons(
             @Parameter(description = "사용자 ID", example = "1", required = true)
             @RequestParam Long userId,
@@ -82,6 +83,7 @@ public interface CouponApi {
                     content = @Content(schema = @Schema(implementation = CouponEventListResponse.class))
             )
     })
+    @GetMapping("/coupons-events")
     ResponseEntity<ApiResponse<CouponEventListResponse>> getCouponEvents(
     );
 }
