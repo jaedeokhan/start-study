@@ -1,6 +1,7 @@
 package com.ecommerce.presentation.dto.coupon;
 
-import com.ecommerce.enums.DiscountType;
+import com.ecommerce.domain.coupon.CouponEvent;
+import com.ecommerce.domain.coupon.DiscountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -53,5 +55,24 @@ public class CouponEventListResponse {
 
         @Schema(description = "종료일", example = "2025-11-30T23:59:59")
         private LocalDateTime endDate;
+    }
+
+    public static CouponEventListResponse from(List<CouponEvent> couponEvents) {
+        List<CouponEventInfo> events = couponEvents.stream()
+            .map(event -> new CouponEventInfo(
+                event.getId(),
+                event.getName(),
+                event.getDiscountType(),
+                event.getDiscountType() == DiscountType.AMOUNT ? event.getDiscountAmount() : null,
+                event.getDiscountType() == DiscountType.RATE ? event.getDiscountRate() : null,
+                event.getDiscountType() == DiscountType.RATE ? (long) event.getMaxDiscountAmount() : null,
+                event.getTotalQuantity(),
+                event.getRemainingQuantity(),
+                event.getStartDate(),
+                event.getEndDate()
+            ))
+            .collect(Collectors.toList());
+
+        return new CouponEventListResponse(events);
     }
 }
