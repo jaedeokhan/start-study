@@ -15,7 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * User InMemory Repository 구현체
  * - ConcurrentHashMap 기반 인메모리 저장소
- * - ReentrantLock을 활용한 잔액 충전/차감 동시성 제어
+ * - ReentrantLock을 활용한 포인트 충전/사용 동시성 제어
  */
 @Repository
 public class InMemoryUserRepository implements UserRepository {
@@ -34,7 +34,7 @@ public class InMemoryUserRepository implements UserRepository {
     public User save(User user) {
         if (user.getId() == null) {
             Long newId = idGenerator.getAndIncrement();
-            User newUser = new User(newId, user.getName(), user.getBalance());
+            User newUser = new User(newId, user.getName(), user.getPointBalance());
             store.put(newId, newUser);
             return newUser;
         } else {
@@ -44,10 +44,10 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     /**
-     * ✅ ReentrantLock을 활용한 잔액 충전 (동시성 제어)
+     * ✅ ReentrantLock을 활용한 포인트 충전 (동시성 제어)
      */
     @Override
-    public void chargeBalance(Long userId, long amount) {
+    public void chargePoint(Long userId, long amount) {
         Lock lock = locks.computeIfAbsent(userId, k -> new ReentrantLock());
         lock.lock();
 
@@ -58,7 +58,7 @@ public class InMemoryUserRepository implements UserRepository {
             }
 
             // Entity의 비즈니스 로직 호출
-            user.charge(amount);
+            user.chargePoint(amount);
 
         } finally {
             lock.unlock();
@@ -66,10 +66,10 @@ public class InMemoryUserRepository implements UserRepository {
     }
 
     /**
-     * ✅ ReentrantLock을 활용한 잔액 차감 (동시성 제어)
+     * ✅ ReentrantLock을 활용한 포인트 사용 (동시성 제어)
      */
     @Override
-    public void deductBalance(Long userId, long amount) {
+    public void usePoint(Long userId, long amount) {
         Lock lock = locks.computeIfAbsent(userId, k -> new ReentrantLock());
         lock.lock();
 
@@ -80,7 +80,7 @@ public class InMemoryUserRepository implements UserRepository {
             }
 
             // Entity의 비즈니스 로직 호출 (검증 포함)
-            user.deduct(amount);
+            user.usePoint(amount);
 
         } finally {
             lock.unlock();

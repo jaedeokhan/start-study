@@ -1,6 +1,8 @@
 package com.ecommerce.application.usecase.order;
 
 import com.ecommerce.domain.cart.CartItem;
+import com.ecommerce.domain.point.PointHistory;
+import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.order.Order;
 import com.ecommerce.domain.order.OrderItem;
@@ -12,7 +14,7 @@ import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
 import com.ecommerce.domain.coupon.exception.CouponEventNotFoundException;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
-import com.ecommerce.domain.payment.exception.InsufficientBalanceException;
+import com.ecommerce.domain.payment.exception.InsufficientPointException;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ public class CreateOrderUseCase {
     private final UserCouponRepository userCouponRepository;
     private final CouponEventRepository couponEventRepository;
     private final OrderRepository orderRepository;
+    private final PointHistoryRepository pointHistoryRepository;
 
     public OrderResponse execute(Long userId, Long userCouponId) {
         // 1. 장바구니 조회
@@ -102,16 +105,16 @@ public class CreateOrderUseCase {
 
         long finalAmount = totalAmount - discountAmount;
 
-        // 6. 사용자 잔액 차감 (동시성 제어는 Repository에서)
+        // 6. 사용자 포인트 차감 (동시성 제어는 Repository에서)
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다: " + userId));
 
-        if (!user.hasBalance(finalAmount)) {
-            throw new InsufficientBalanceException(
-                String.format("잔액 부족: 필요 금액 %d원, 현재 잔액 %d원", finalAmount, user.getBalance())
+        if (!user.hasPoint(finalAmount)) {
+            throw new InsufficientPointException(
+                String.format("포인트 부족: 필요 금액 %d원, 현재 포인트 %d원", finalAmount, user.getPointBalance())
             );
         }
-        userRepository.deductBalance(userId, finalAmount);
+        userRepository.usePoint(userId, finalAmount);
 
         // 7. 주문 생성
         Order order = new Order(null, userId, totalAmount, discountAmount, finalAmount, userCouponId);
@@ -135,7 +138,22 @@ public class CreateOrderUseCase {
         // 9. 장바구니 클리어
         cartRepository.deleteByUserId(userId);
 
-        // 10. 응답 생성
+        // 10. 포인트 이력 저장
+        User updatedUser = userRepository.findById(userId)
+            .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+
+        PointHistory pointHistory = new PointHistory(
+            null,
+            userId,
+            -finalAmount,  // 사용은 음수
+            TransactionType.USE,
+            updatedUser.getPointBalance(),
+            order.getId(),
+            String.format("주문 결제: 주문번호 %d", order.getId())
+        );
+        pointHistoryRepository.save(pointHistory);
+
+        // 11. 응답 생성
         return OrderResponse.from(order, orderItems);
     }
 
