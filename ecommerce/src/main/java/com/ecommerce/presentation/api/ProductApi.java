@@ -12,10 +12,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "상품 API", description = "상품 조회 관련 API")
+@RequestMapping("/api/v1/products")
 public interface ProductApi {
 
     @Operation(summary = "상품 목록 조회", description = "전체 상품 목록을 페이지네이션하여 조회합니다.")
@@ -26,6 +26,7 @@ public interface ProductApi {
             content = @Content(schema = @Schema(implementation = ProductListResponse.class))
         )
     })
+    @GetMapping
     ResponseEntity<ApiResponse<ProductListResponse>> getProducts(
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
             @RequestParam(defaultValue = "0") int page,
@@ -46,6 +47,7 @@ public interface ProductApi {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))
         )
     })
+    @GetMapping("/{productId}")
     ResponseEntity<ApiResponse<ProductResponse>> getProduct(
             @Parameter(description = "상품 ID", example = "1", required = true)
             @PathVariable Long productId
@@ -59,5 +61,6 @@ public interface ProductApi {
             content = @Content(schema = @Schema(implementation = PopularProductResponse.class))
         )
     })
+    @GetMapping("/popular")
     ResponseEntity<ApiResponse<PopularProductResponse>> getPopularProducts();
 }

@@ -15,11 +15,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "장바구니 API", description = "장바구니 관련 API")
+@RequestMapping("/api/v1/cart")
 public interface CartApi {
 
     @Operation(summary = "장바구니 조회", description = "사용자의 장바구니 내역을 조회합니다.")
@@ -30,6 +29,7 @@ public interface CartApi {
             content = @Content(schema = @Schema(implementation = CartResponse.class))
         )
     })
+    @GetMapping
     ResponseEntity<ApiResponse<CartResponse>> getCart(
             @Parameter(description = "사용자 ID", example = "1", required = true)
             @RequestParam Long userId
@@ -53,6 +53,7 @@ public interface CartApi {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))
         )
     })
+    @PostMapping("/items")
     ResponseEntity<ApiResponse<AddCartItemResponse>> addCartItem(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                 description = "장바구니 상품 추가 요청",
@@ -79,6 +80,7 @@ public interface CartApi {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))
         )
     })
+    @PatchMapping("/items/{cartItemId}")
     ResponseEntity<ApiResponse<UpdateCartItemResponse>> updateCartItem(
             @Parameter(description = "장바구니 항목 ID", example = "1", required = true)
             @PathVariable Long cartItemId,
@@ -101,6 +103,7 @@ public interface CartApi {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class))
         )
     })
+    @DeleteMapping("/items/{cartItemId}")
     ResponseEntity<Void> deleteCartItem(
             @Parameter(description = "장바구니 항목 ID", example = "1", required = true)
             @PathVariable Long cartItemId

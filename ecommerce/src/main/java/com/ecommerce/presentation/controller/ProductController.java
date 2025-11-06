@@ -10,14 +10,13 @@ import com.ecommerce.presentation.dto.product.ProductListResponse;
 import com.ecommerce.presentation.dto.product.ProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 상품 API Controller
  * - UseCase를 통한 비즈니스 로직 실행
  */
 @RestController
-@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 public class ProductController implements ProductApi {
     // ✅ UseCase 주입
@@ -25,24 +24,18 @@ public class ProductController implements ProductApi {
     private final GetProductUseCase getProductUseCase;
     private final GetPopularProductsUseCase getPopularProductsUseCase;
 
-    @GetMapping
     @Override
-    public ResponseEntity<ApiResponse<ProductListResponse>> getProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
-    ) {
+    public ResponseEntity<ApiResponse<ProductListResponse>> getProducts(int page, int size) {
         ProductListResponse response = getProductsUseCase.execute(page, size);
         return ResponseEntity.ok(ApiResponse.of(response));
     }
 
-    @GetMapping("/{productId}")
     @Override
-    public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Long productId) {
+    public ResponseEntity<ApiResponse<ProductResponse>> getProduct(Long productId) {
         ProductResponse response = getProductUseCase.execute(productId);
         return ResponseEntity.ok(ApiResponse.of(response));
     }
 
-    @GetMapping("/popular")
     @Override
     public ResponseEntity<ApiResponse<PopularProductResponse>> getPopularProducts() {
         PopularProductResponse response = getPopularProductsUseCase.execute();
