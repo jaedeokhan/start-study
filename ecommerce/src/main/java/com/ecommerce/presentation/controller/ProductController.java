@@ -1,20 +1,29 @@
 package com.ecommerce.presentation.controller;
 
+import com.ecommerce.application.usecase.product.GetPopularProductsUseCase;
+import com.ecommerce.application.usecase.product.GetProductUseCase;
+import com.ecommerce.application.usecase.product.GetProductsUseCase;
 import com.ecommerce.presentation.api.ProductApi;
 import com.ecommerce.presentation.dto.common.ApiResponse;
-import com.ecommerce.presentation.dto.common.PaginationInfo;
 import com.ecommerce.presentation.dto.product.PopularProductResponse;
 import com.ecommerce.presentation.dto.product.ProductListResponse;
 import com.ecommerce.presentation.dto.product.ProductResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
+/**
+ * 상품 API Controller
+ * - UseCase를 통한 비즈니스 로직 실행
+ */
 @RestController
 @RequestMapping("/api/v1/products")
+@RequiredArgsConstructor
 public class ProductController implements ProductApi {
+    // ✅ UseCase 주입
+    private final GetProductsUseCase getProductsUseCase;
+    private final GetProductUseCase getProductUseCase;
+    private final GetPopularProductsUseCase getPopularProductsUseCase;
 
     @GetMapping
     @Override
@@ -22,60 +31,21 @@ public class ProductController implements ProductApi {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        ProductListResponse data = new ProductListResponse(
-                List.of(
-                        new ProductListResponse.ProductSummary(1L, "노트북", "고성능 노트북", 1500000L, 50),
-                        new ProductListResponse.ProductSummary(2L, "마우스", "무선 마우스", 30000L, 0)
-                ),
-                new PaginationInfo(0, 5, 100, 20)
-        );
-        return ResponseEntity.ok(ApiResponse.of(data));
+        ProductListResponse response = getProductsUseCase.execute(page, size);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     @GetMapping("/{productId}")
     @Override
     public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Long productId) {
-        ProductResponse data = new ProductResponse(
-                1L,
-                "노트북",
-                "고성능 노트북, 16GB RAM, 512GB SSD",
-                1500000L,
-                50,
-                LocalDateTime.of(2025, 10, 1, 10, 0),
-                LocalDateTime.of(2025, 10, 29, 14, 0)
-        );
-        return ResponseEntity.ok(ApiResponse.of(data));
+        ProductResponse response = getProductUseCase.execute(productId);
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 
     @GetMapping("/popular")
     @Override
     public ResponseEntity<ApiResponse<PopularProductResponse>> getPopularProducts() {
-        PopularProductResponse data = new PopularProductResponse(
-                List.of(
-                        new PopularProductResponse.PopularProduct(
-                                1L,
-                                "노트북",
-                                1500000L,
-                                50,
-                                150,
-                                new PopularProductResponse.SalesPeriod(
-                                        LocalDateTime.of(2025, 10, 26, 0, 0),
-                                        LocalDateTime.of(2025, 10, 29, 0, 0)
-                                )
-                        ),
-                        new PopularProductResponse.PopularProduct(
-                                5L,
-                                "키보드",
-                                80000L,
-                                30,
-                                120,
-                                new PopularProductResponse.SalesPeriod(
-                                        LocalDateTime.of(2025, 10, 26, 0, 0),
-                                        LocalDateTime.of(2025, 10, 29, 0, 0)
-                                )
-                        )
-                )
-        );
-        return ResponseEntity.ok(ApiResponse.of(data));
+        PopularProductResponse response = getPopularProductsUseCase.execute();
+        return ResponseEntity.ok(ApiResponse.of(response));
     }
 }

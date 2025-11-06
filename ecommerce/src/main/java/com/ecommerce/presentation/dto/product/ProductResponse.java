@@ -1,5 +1,6 @@
 package com.ecommerce.presentation.dto.product;
 
+import com.ecommerce.domain.product.Product;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,4 +34,16 @@ public class ProductResponse {
 
     @Schema(description = "수정 시간", example = "2025-10-29T14:00:00")
     private LocalDateTime updatedAt;
+
+    public static ProductResponse from(Product product) {
+        return new ProductResponse(
+            product.getId(),
+            product.getName(),
+            product.getDescription(),
+            product.getPrice(),
+            product.getStock(),
+            product.getCreatedAt(),
+            product.getUpdatedAt()
+        );
+    }
 }

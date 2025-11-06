@@ -1,5 +1,6 @@
 package com.ecommerce.presentation.dto.product;
 
+import com.ecommerce.domain.product.Product;
 import com.ecommerce.presentation.dto.common.PaginationInfo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -7,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -39,5 +41,25 @@ public class ProductListResponse {
 
         @Schema(description = "재고", example = "50")
         private Integer stock;
+
+        public static ProductSummary from(Product product) {
+            return new ProductSummary(
+                product.getId(),
+                product.getName(),
+                product.getDescription(),
+                product.getPrice(),
+                product.getStock()
+            );
+        }
+    }
+
+    public static ProductListResponse from(List<Product> products, int page, int size, int totalElements, int totalPages) {
+        List<ProductSummary> productSummaries = products.stream()
+            .map(ProductSummary::from)
+            .collect(Collectors.toList());
+
+        PaginationInfo pagination = new PaginationInfo(page, totalPages, totalElements, size);
+
+        return new ProductListResponse(productSummaries, pagination);
     }
 }
