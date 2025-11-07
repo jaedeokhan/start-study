@@ -1,6 +1,7 @@
 package com.ecommerce.domain.product;
 
 import com.ecommerce.domain.product.exception.InsufficientStockException;
+import com.ecommerce.domain.product.exception.ProductErrorCode;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -71,10 +72,7 @@ public class Product {
      */
     public void decreaseStock(int quantity) {
         if (this.stock < quantity) {
-            throw new InsufficientStockException(
-                String.format("재고 부족: 상품 '%s' (요청: %d, 재고: %d)",
-                    name, quantity, stock)
-            );
+            throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
         }
         this.stock -= quantity;
         this.updatedAt = LocalDateTime.now();

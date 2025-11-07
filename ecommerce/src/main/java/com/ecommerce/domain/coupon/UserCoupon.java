@@ -2,6 +2,7 @@ package com.ecommerce.domain.coupon;
 
 import com.ecommerce.domain.coupon.CouponStatus;
 import com.ecommerce.domain.coupon.exception.CouponAlreadyUsedException;
+import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponExpiredException;
 import lombok.Getter;
 
@@ -43,14 +44,12 @@ public class UserCoupon {
      */
     public void validateUsable() {
         if (this.isUsed) {
-            throw new CouponAlreadyUsedException("이미 사용된 쿠폰입니다.");
+            throw new CouponAlreadyUsedException(CouponErrorCode.COUPON_ALREADY_USED);
         }
 
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(validFrom) || now.isAfter(validUntil)) {
-            throw new CouponExpiredException(
-                String.format("쿠폰 만료: 유효기간 %s ~ %s", validFrom, validUntil)
-            );
+            throw new CouponExpiredException(CouponErrorCode.COUPON_EXPIRED);
         }
     }
 

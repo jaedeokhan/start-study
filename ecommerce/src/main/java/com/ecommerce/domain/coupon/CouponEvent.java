@@ -1,6 +1,7 @@
 package com.ecommerce.domain.coupon;
 
 import com.ecommerce.domain.coupon.DiscountType;
+import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponSoldOutException;
 import lombok.Getter;
 
@@ -70,9 +71,7 @@ public class CouponEvent {
      */
     public void issue() {
         if (!canIssue()) {
-            throw new CouponSoldOutException(
-                String.format("쿠폰 소진: '%s' (총 수량: %d)", name, totalQuantity)
-            );
+            throw new CouponSoldOutException(CouponErrorCode.COUPON_SOLD_OUT);
         }
         this.issuedQuantity++;
     }

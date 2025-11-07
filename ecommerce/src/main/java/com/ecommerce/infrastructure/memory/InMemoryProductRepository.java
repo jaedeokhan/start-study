@@ -1,6 +1,7 @@
 package com.ecommerce.infrastructure.memory;
 
 import com.ecommerce.domain.product.Product;
+import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import org.springframework.stereotype.Repository;
@@ -87,7 +88,7 @@ public class InMemoryProductRepository implements ProductRepository {
             // 2. Critical Section: 재고 차감
             Product product = store.get(productId);
             if (product == null) {
-                throw new ProductNotFoundException("상품을 찾을 수 없습니다: " + productId);
+                throw new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND);
             }
 
             // Entity의 비즈니스 로직 호출 (검증 포함)

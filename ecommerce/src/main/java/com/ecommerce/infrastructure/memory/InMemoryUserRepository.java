@@ -1,6 +1,7 @@
 package com.ecommerce.infrastructure.memory;
 
 import com.ecommerce.domain.user.User;
+import com.ecommerce.domain.user.exception.UserErrorCode;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.infrastructure.repository.UserRepository;
 import org.springframework.stereotype.Repository;
@@ -54,7 +55,7 @@ public class InMemoryUserRepository implements UserRepository {
         try {
             User user = store.get(userId);
             if (user == null) {
-                throw new UserNotFoundException("사용자를 찾을 수 없습니다: " + userId);
+                throw new UserNotFoundException(UserErrorCode.USER_NOT_FOUND);
             }
 
             // Entity의 비즈니스 로직 호출
@@ -76,7 +77,7 @@ public class InMemoryUserRepository implements UserRepository {
         try {
             User user = store.get(userId);
             if (user == null) {
-                throw new UserNotFoundException("사용자를 찾을 수 없습니다: " + userId);
+                throw new UserNotFoundException(UserErrorCode.USER_NOT_FOUND);
             }
 
             // Entity의 비즈니스 로직 호출 (검증 포함)

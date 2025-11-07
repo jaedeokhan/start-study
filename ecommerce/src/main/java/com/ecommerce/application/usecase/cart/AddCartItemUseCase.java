@@ -3,8 +3,9 @@ package com.ecommerce.application.usecase.cart;
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.domain.product.Product;
 import com.ecommerce.presentation.dto.cart.AddCartItemResponse;
-import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
+import com.ecommerce.domain.product.exception.ProductErrorCode;
+import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.infrastructure.repository.CartRepository;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +25,11 @@ public class AddCartItemUseCase {
     public AddCartItemResponse execute(Long userId, Long productId, int quantity) {
         // 1. 상품 조회
         Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new ProductNotFoundException("상품을 찾을 수 없습니다: " + productId));
+            .orElseThrow(() -> new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND));
 
         // 2. 재고 확인
         if (!product.hasStock(quantity)) {
-            throw new InsufficientStockException(
-                String.format("재고 부족: 상품 '%s' (요청: %d, 재고: %d)",
-                    product.getName(), quantity, product.getStock())
-            );
+            throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
         }
 
         // 3. 기존 장바구니 아이템 확인

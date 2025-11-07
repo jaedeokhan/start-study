@@ -1,7 +1,9 @@
 package com.ecommerce.domain.order.exception;
 
-public class OrderNotFoundException extends RuntimeException {
-    public OrderNotFoundException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class OrderNotFoundException extends BaseException {
+    public OrderNotFoundException(OrderErrorCode errorCode) {
+        super(errorCode);
     }
 }
