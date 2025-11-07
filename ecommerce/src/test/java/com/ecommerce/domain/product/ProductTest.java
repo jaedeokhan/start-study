@@ -70,7 +70,7 @@ class ProductTest {
         // when & then
         assertThatThrownBy(() -> product.decreaseStock(51))
             .isInstanceOf(InsufficientStockException.class)
-            .hasMessageContaining("재고 부족");
+            .hasMessageContaining("재고가 부족");
     }
 
     @Test

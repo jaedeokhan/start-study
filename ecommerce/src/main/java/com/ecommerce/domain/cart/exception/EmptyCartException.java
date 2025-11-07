@@ -1,7 +1,9 @@
 package com.ecommerce.domain.cart.exception;
 
-public class EmptyCartException extends RuntimeException {
-    public EmptyCartException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class EmptyCartException extends BaseException {
+    public EmptyCartException(CartErrorCode errorCode) {
+        super(errorCode);
     }
 }

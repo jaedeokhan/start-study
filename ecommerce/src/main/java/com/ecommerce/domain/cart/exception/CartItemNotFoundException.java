@@ -1,7 +1,9 @@
 package com.ecommerce.domain.cart.exception;
 
-public class CartItemNotFoundException extends RuntimeException {
-    public CartItemNotFoundException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class CartItemNotFoundException extends BaseException {
+    public CartItemNotFoundException(CartErrorCode errorCode) {
+        super(errorCode);
     }
 }

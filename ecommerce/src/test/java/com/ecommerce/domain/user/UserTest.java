@@ -86,6 +86,6 @@ class UserTest {
         // when & then
         assertThatThrownBy(() -> user.usePoint(10001))
             .isInstanceOf(InsufficientPointException.class)
-            .hasMessageContaining("포인트 부족");
+            .hasMessageContaining("포인트가 부족");
     }
 }

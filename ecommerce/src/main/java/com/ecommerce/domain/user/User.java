@@ -1,6 +1,7 @@
 package com.ecommerce.domain.user;
 
 import com.ecommerce.domain.point.exception.InsufficientPointException;
+import com.ecommerce.domain.point.exception.PointErrorCode;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -70,9 +71,7 @@ public class User {
      */
     public void usePoint(long amount) {
         if (this.pointBalance < amount) {
-            throw new InsufficientPointException(
-                String.format("포인트 부족: 필요 금액 %d원, 현재 포인트 %d원", amount, pointBalance)
-            );
+            throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT);
         }
         this.pointBalance -= amount;
         this.updatedAt = LocalDateTime.now();

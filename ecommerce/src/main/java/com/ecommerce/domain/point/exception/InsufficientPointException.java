@@ -1,7 +1,9 @@
 package com.ecommerce.domain.point.exception;
 
-public class InsufficientPointException extends RuntimeException {
-    public InsufficientPointException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class InsufficientPointException extends BaseException {
+    public InsufficientPointException(PointErrorCode errorCode) {
+        super(errorCode);
     }
 }

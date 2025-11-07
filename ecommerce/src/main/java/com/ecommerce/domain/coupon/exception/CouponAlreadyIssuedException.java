@@ -1,7 +1,9 @@
 package com.ecommerce.domain.coupon.exception;
 
-public class CouponAlreadyIssuedException extends RuntimeException {
-    public CouponAlreadyIssuedException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class CouponAlreadyIssuedException extends BaseException {
+    public CouponAlreadyIssuedException(CouponErrorCode errorCode) {
+        super(errorCode);
     }
 }

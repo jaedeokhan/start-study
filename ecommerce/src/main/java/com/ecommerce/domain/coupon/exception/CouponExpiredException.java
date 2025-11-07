@@ -1,7 +1,9 @@
 package com.ecommerce.domain.coupon.exception;
 
-public class CouponExpiredException extends RuntimeException {
-    public CouponExpiredException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class CouponExpiredException extends BaseException {
+    public CouponExpiredException(CouponErrorCode errorCode) {
+        super(errorCode);
     }
 }

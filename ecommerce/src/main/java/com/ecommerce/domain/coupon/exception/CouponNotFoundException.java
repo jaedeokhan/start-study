@@ -1,7 +1,9 @@
 package com.ecommerce.domain.coupon.exception;
 
-public class CouponNotFoundException extends RuntimeException {
-    public CouponNotFoundException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class CouponNotFoundException extends BaseException {
+    public CouponNotFoundException(CouponErrorCode errorCode) {
+        super(errorCode);
     }
 }

@@ -2,6 +2,7 @@ package com.ecommerce.application.usecase.order;
 
 import com.ecommerce.domain.order.Order;
 import com.ecommerce.domain.order.OrderItem;
+import com.ecommerce.domain.order.exception.OrderErrorCode;
 import com.ecommerce.domain.order.exception.OrderNotFoundException;
 import com.ecommerce.infrastructure.repository.OrderRepository;
 import com.ecommerce.presentation.dto.order.OrderResponse;
@@ -21,7 +22,7 @@ public class GetOrderUseCase {
     public OrderResponse execute(Long orderId) {
         // 1. 주문 조회
         Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new OrderNotFoundException("주문을 찾을 수 없습니다: " + orderId));
+            .orElseThrow(() -> new OrderNotFoundException(OrderErrorCode.ORDER_NOT_FOUND));
 
         // 2. 주문 아이템 조회
         List<OrderItem> orderItems = orderRepository.findOrderItemsByOrderId(orderId);

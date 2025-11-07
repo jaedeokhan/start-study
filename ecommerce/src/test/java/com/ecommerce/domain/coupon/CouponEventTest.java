@@ -93,7 +93,7 @@ class CouponEventTest {
         // then
         assertThatThrownBy(() -> couponEvent.issue())
             .isInstanceOf(CouponSoldOutException.class)
-            .hasMessageContaining("쿠폰 소진");
+            .hasMessageContaining("쿠폰이 모두 소진");
     }
 
     @Test

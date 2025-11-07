@@ -9,12 +9,17 @@ import com.ecommerce.domain.order.OrderItem;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.domain.coupon.UserCoupon;
 import com.ecommerce.domain.coupon.CouponEvent;
+import com.ecommerce.domain.cart.exception.CartErrorCode;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
-import com.ecommerce.domain.product.exception.InsufficientStockException;
-import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
+import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponEventNotFoundException;
-import com.ecommerce.domain.user.exception.UserNotFoundException;
+import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
+import com.ecommerce.domain.point.exception.PointErrorCode;
+import com.ecommerce.domain.product.exception.InsufficientStockException;
+import com.ecommerce.domain.product.exception.ProductErrorCode;
+import com.ecommerce.domain.user.exception.UserErrorCode;
+import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +54,7 @@ public class CreateOrderUseCase {
         // 1. 장바구니 조회
         List<CartItem> cartItems = cartRepository.findByUserId(userId);
         if (cartItems.isEmpty()) {
-            throw new EmptyCartException("장바구니가 비어있습니다.");
+            throw new EmptyCartException(CartErrorCode.EMPTY_CART);
         }
 
         // 2. 상품 정보 조회
@@ -64,10 +69,7 @@ public class CreateOrderUseCase {
         for (CartItem item : cartItems) {
             Product product = productMap.get(item.getProductId());
             if (!product.hasStock(item.getQuantity())) {
-                throw new InsufficientStockException(
-                    String.format("재고 부족: %s (요청: %d, 재고: %d)",
-                        product.getName(), item.getQuantity(), product.getStock())
-                );
+                throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
             }
             productRepository.decreaseStock(product.getId(), item.getQuantity());
         }
@@ -87,10 +89,10 @@ public class CreateOrderUseCase {
 
         if (userCouponId != null) {
             userCoupon = userCouponRepository.findById(userCouponId)
-                .orElseThrow(() -> new CouponNotFoundException("쿠폰을 찾을 수 없습니다: " + userCouponId));
+                .orElseThrow(() -> new CouponNotFoundException(CouponErrorCode.COUPON_NOT_FOUND));
 
             couponEvent = couponEventRepository.findById(userCoupon.getCouponEventId())
-                .orElseThrow(() -> new CouponEventNotFoundException("쿠폰 이벤트를 찾을 수 없습니다"));
+                .orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
 
             // 쿠폰 사용 가능 여부 검증
             userCoupon.validateUsable();
@@ -107,11 +109,10 @@ public class CreateOrderUseCase {
 
         // 6. 사용자 포인트 차감 (동시성 제어는 Repository에서)
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
 
         if (!user.hasPoint(finalAmount)) {
-            throw new InsufficientPointException(
-                String.format("포인트 부족: 필요 금액 %d원, 현재 포인트 %d원", finalAmount, user.getPointBalance())
+            throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT
             );
         }
         userRepository.usePoint(userId, finalAmount);
@@ -140,7 +141,7 @@ public class CreateOrderUseCase {
 
         // 10. 포인트 이력 저장
         User updatedUser = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다: " + userId));
+            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
 
         PointHistory pointHistory = new PointHistory(
             null,

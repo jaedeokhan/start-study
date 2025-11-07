@@ -1,6 +1,7 @@
 package com.ecommerce.infrastructure.memory;
 
 import com.ecommerce.domain.coupon.CouponEvent;
+import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponEventNotFoundException;
 import com.ecommerce.infrastructure.repository.CouponEventRepository;
 import org.springframework.stereotype.Repository;
@@ -58,7 +59,7 @@ public class InMemoryCouponEventRepository implements CouponEventRepository {
         try {
             CouponEvent event = store.get(couponEventId);
             if (event == null) {
-                throw new CouponEventNotFoundException("쿠폰 이벤트를 찾을 수 없습니다: " + couponEventId);
+                throw new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND);
             }
 
             // Entity의 비즈니스 로직 호출 (검증 및 수량 증가)

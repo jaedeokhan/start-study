@@ -1,7 +1,9 @@
 package com.ecommerce.domain.product.exception;
 
-public class InsufficientStockException extends RuntimeException {
-    public InsufficientStockException(String message) {
-        super(message);
+import com.ecommerce.domain.common.exception.BaseException;
+
+public class InsufficientStockException extends BaseException {
+    public InsufficientStockException(ProductErrorCode errorCode) {
+        super(errorCode);
     }
 }
