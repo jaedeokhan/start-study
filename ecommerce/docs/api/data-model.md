@@ -422,7 +422,6 @@ erDiagram
 
 **인덱스 전략**
 -- 재시도 대상 조회
-CREATE INDEX idx_outbox_next_retry ON outbox(status, next_retry_at);
 
 -- 특정 엔티티 이벤트 조회 (디버깅용)
 CREATE INDEX idx_outbox_aggregate ON outbox(aggregate_type, aggregate_id);
@@ -583,9 +582,6 @@ CREATE TABLE outbox (
     event_type VARCHAR(50) NOT NULL,               -- 이벤트 타입 (ORDER_COMPLETED 등)
     payload JSON NOT NULL,                         -- 이벤트 데이터
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING', -- 전송 상태
-    retry_count INT NOT NULL DEFAULT 0,            -- 재시도 횟수
-    max_retry INT NOT NULL DEFAULT 3,              -- 최대 재시도 횟수
-    last_error TEXT NULL,                          -- 마지막 실패 사유
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     processed_at DATETIME NULL,                    -- 처리 완료 시각
     CONSTRAINT chk_outbox_status CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED'))
