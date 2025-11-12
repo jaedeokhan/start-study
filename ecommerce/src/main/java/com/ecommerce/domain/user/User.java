@@ -1,18 +1,24 @@
 package com.ecommerce.domain.user;
 
+import com.ecommerce.domain.common.exception.BaseTimeEntity;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.point.exception.PointErrorCode;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "users")
 @Getter
-public class User {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class User extends BaseTimeEntity {
     private Long id;
     private String name;
     private long pointBalance;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     public User(Long id, String name, long pointBalance) {
         validatePointBalance(pointBalance);
@@ -20,8 +26,10 @@ public class User {
         this.id = id;
         this.name = name;
         this.pointBalance = pointBalance;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    }
+
+    public static User create(String name, long pointBalance) {
+        return new User(null, name, pointBalance);
     }
 
     // ========== 검증 로직 (Entity 내부) ==========
@@ -51,7 +59,6 @@ public class User {
             throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
         }
         this.pointBalance += amount;
-        this.updatedAt = LocalDateTime.now();
     }
 
     public void usePoint(long amount) {
@@ -59,6 +66,5 @@ public class User {
             throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT);
         }
         this.pointBalance -= amount;
-        this.updatedAt = LocalDateTime.now();
     }
 }
