@@ -3,8 +3,7 @@ package com.ecommerce.domain.user;
 import com.ecommerce.domain.common.exception.BaseTimeEntity;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.point.exception.PointErrorCode;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,8 +15,15 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(name = "point_balance", nullable = false)
     private long pointBalance;
 
     public User(Long id, String name, long pointBalance) {
