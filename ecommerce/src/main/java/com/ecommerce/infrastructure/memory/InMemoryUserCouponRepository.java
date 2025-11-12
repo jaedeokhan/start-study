@@ -48,8 +48,8 @@ public class InMemoryUserCouponRepository implements UserCouponRepository {
                 newId,
                 userCoupon.getUserId(),
                 userCoupon.getCouponEventId(),
-                userCoupon.getValidFrom(),
-                userCoupon.getValidUntil()
+                userCoupon.getStartDate(),
+                userCoupon.getEndDate()
             );
             store.put(newId, newCoupon);
             return newCoupon;
