@@ -18,20 +18,20 @@ public class UserCoupon {
     private Long userId;
     private Long couponEventId;
     private boolean isUsed;
-    private LocalDateTime validFrom;
-    private LocalDateTime validUntil;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
     private LocalDateTime issuedAt;
     private LocalDateTime usedAt;
 
     // 생성자
     public UserCoupon(Long id, Long userId, Long couponEventId,
-                      LocalDateTime validFrom, LocalDateTime validUntil) {
+                      LocalDateTime startDate, LocalDateTime endDate) {
         this.id = id;
         this.userId = userId;
         this.couponEventId = couponEventId;
         this.isUsed = false;
-        this.validFrom = validFrom;
-        this.validUntil = validUntil;
+        this.startDate = startDate;
+        this.endDate = endDate;
         this.issuedAt = LocalDateTime.now();
     }
 
@@ -48,7 +48,7 @@ public class UserCoupon {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(validFrom) || now.isAfter(validUntil)) {
+        if (now.isBefore(startDate) || now.isAfter(endDate)) {
             throw new CouponExpiredException(CouponErrorCode.COUPON_EXPIRED);
         }
     }
@@ -68,7 +68,7 @@ public class UserCoupon {
      * 만료 여부 확인
      */
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(validUntil);
+        return LocalDateTime.now().isAfter(endDate);
     }
 
     /**
@@ -79,7 +79,7 @@ public class UserCoupon {
             return false;
         }
         LocalDateTime now = LocalDateTime.now();
-        return !now.isBefore(validFrom) && !now.isAfter(validUntil);
+        return !now.isBefore(startDate) && !now.isAfter(endDate);
     }
 
     /**
@@ -90,7 +90,7 @@ public class UserCoupon {
         if (this.isUsed) {
             return CouponStatus.USED;
         }
-        if (now.isAfter(this.validUntil)) {
+        if (now.isAfter(this.endDate)) {
             return CouponStatus.EXPIRED;
         }
         return CouponStatus.AVAILABLE;

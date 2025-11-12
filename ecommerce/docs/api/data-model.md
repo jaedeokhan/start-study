@@ -115,12 +115,11 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint coupon_event_id FK
-        varchar discount_type
-        bigint discount_value
-        varchar status
+        boolean is_used
+        datetime start_date
+        datetime end_date
         datetime issued_at
         datetime used_at
-        datetime expires_at
     }
 
     OUTBOX {
@@ -369,39 +368,37 @@ erDiagram
 
 **테이블명**: `user_coupons`
 
-| 컬럼명          | 타입        | NULL | 기본값            | 설명                |
-| --------------- | ----------- | ---- | ----------------- | ------------------- |
-| id              | BIGINT      | NO   | AUTO_INCREMENT    | 사용자 쿠폰 ID (PK) |
-| user_id         | BIGINT      | NO   | -                 | 사용자 ID (FK)      |
-| coupon_event_id | BIGINT      | NO   | -                 | 쿠폰 이벤트 ID (FK) |
-| discount_type   | VARCHAR(20) | NO   | -                 | 할인 유형 (스냅샷)  |
-| discount_value  | BIGINT      | NO   | -                 | 할인값 (스냅샷)     |
-| status          | VARCHAR(20) | NO   | 'AVAILABLE'       | 상태                |
-| issued_at       | DATETIME    | NO   | CURRENT_TIMESTAMP | 발급 일시           |
-| used_at         | DATETIME    | YES  | -                 | 사용일시            |
-| expires_at      | DATETIME    | NO   | -                 | 만료일시            |
+| 컬럼명          | 타입     | NULL | 기본값            | 설명                |
+| --------------- | -------- | ---- | ----------------- | ------------------- |
+| id              | BIGINT   | NO   | AUTO_INCREMENT    | 사용자 쿠폰 ID (PK) |
+| user_id         | BIGINT   | NO   | -                 | 사용자 ID (FK)      |
+| coupon_event_id | BIGINT   | NO   | -                 | 쿠폰 이벤트 ID (FK) |
+| is_used         | BOOLEAN  | NO   | FALSE             | 사용 여부           |
+| start_date      | DATETIME | NO   | -                 | 유효 기간 시작      |
+| end_date        | DATETIME | NO   | -                 | 유효 기간 종료      |
+| issued_at       | DATETIME | NO   | CURRENT_TIMESTAMP | 발급 일시           |
+| used_at         | DATETIME | YES  | -                 | 사용일시            |
 
 **제약 조건**:
 
 - PRIMARY KEY: `id`
-- UNIQUE: (`user_id`, `coupon_id`) - 중복 발급 방지
-- CHECK: `discount_type IN ('AMOUNT', 'RATE')`
-- CHECK: `status IN ('PENDING', 'COMPLETED', 'FAILED')`
+- UNIQUE: (`user_id`, `coupon_event_id`) - 중복 발급 방지
 
 **인덱스**:
 
 - PRIMARY: `id`
-- UNIQUE INDEX: `idx_user_coupon_unique` ON (`user_id`, `coupon_id`)
-- INDEX: `idx_user_coupons_user` ON (`user_id`, `status`)
+- UNIQUE INDEX: `idx_user_coupon_unique` ON (`user_id`, `coupon_event_id`)
 
 **참조 관계** (애플리케이션 레벨):
 
 - `user_id` → `users(id)`
-- `coupon_id` → `coupon_events(id)`
+- `coupon_event_id` → `coupon_events(id)`
 
 **비즈니스 규칙**:
 
-- 발급 시 이벤트 정보를 상태값으로 저장
+- 쿠폰 발급 시 CouponEvent의 startDate/endDate를 그대로 저장
+- `is_used`가 false이고 현재 시각이 start_date와 end_date 사이면 사용 가능
+- 상태(AVAILABLE, USED, EXPIRED)는 도메인 로직에서 계산
 
 ### 3.8 outbox
 
