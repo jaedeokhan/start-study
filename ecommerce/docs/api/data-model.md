@@ -528,7 +528,7 @@ CREATE TABLE coupon_events (
 CREATE TABLE user_coupons (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL,
-    coupon_id BIGINT NOT NULL,
+    coupon_event_id BIGINT NOT NULL,
     discount_type VARCHAR(20) NOT NULL,
     discount_value BIGINT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
@@ -539,7 +539,7 @@ CREATE TABLE user_coupons (
     CONSTRAINT chk_user_coupon_status CHECK (status IN ('AVAILABLE', 'USED', 'EXPIRED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_id);
+CREATE UNIQUE INDEX idx_user_coupon_unique ON user_coupons(user_id, coupon_event_id);
 CREATE INDEX idx_user_coupons_user ON user_coupons(user_id, status);
 
 -- 7. 주문
