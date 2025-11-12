@@ -2,7 +2,7 @@ package com.ecommerce.application.usecase.point;
 
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
-import com.ecommerce.infrastructure.repository.InMemoryPointHistoryRepository;
+import com.ecommerce.infrastructure.memory.InMemoryPointHistoryRepository;
 import com.ecommerce.presentation.dto.point.PointHistoryListResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

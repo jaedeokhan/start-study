@@ -1,6 +1,7 @@
-package com.ecommerce.infrastructure.repository;
+package com.ecommerce.infrastructure.memory;
 
 import com.ecommerce.domain.point.PointHistory;
+import com.ecommerce.infrastructure.repository.PointHistoryRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

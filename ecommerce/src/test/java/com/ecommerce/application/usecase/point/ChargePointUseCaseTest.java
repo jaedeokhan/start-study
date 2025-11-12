@@ -3,7 +3,7 @@ package com.ecommerce.application.usecase.point;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.infrastructure.memory.InMemoryUserRepository;
-import com.ecommerce.infrastructure.repository.InMemoryPointHistoryRepository;
+import com.ecommerce.infrastructure.memory.InMemoryPointHistoryRepository;
 import com.ecommerce.presentation.dto.point.ChargePointResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
