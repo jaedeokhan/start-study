@@ -106,7 +106,7 @@ public class OrderResponse {
         private LocalDateTime paidAt;
     }
 
-    public static OrderResponse from(Order order, java.util.List<com.ecommerce.domain.order.OrderItem> domainOrderItems) {
+    public static OrderResponse from(Order order, List<com.ecommerce.domain.order.OrderItem> domainOrderItems) {
         List<OrderItem> items = domainOrderItems.stream()
             .map(item -> new OrderItem(
                 item.getId(),
@@ -114,7 +114,7 @@ public class OrderResponse {
                 item.getProductName(),
                 item.getPrice(),
                 item.getQuantity(),
-                item.getSubtotal()
+                item.getPrice() * item.getQuantity()
             ))
             .collect(Collectors.toList());
 
