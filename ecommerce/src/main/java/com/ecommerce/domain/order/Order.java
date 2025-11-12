@@ -1,27 +1,40 @@
 package com.ecommerce.domain.order;
 
-import com.ecommerce.domain.order.OrderStatus;
+import com.ecommerce.domain.common.exception.BaseTimeEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-/**
- * 주문 Entity
- * - 주문 상태 관리 비즈니스 로직 포함
- */
+@Entity
+@Table(name = "orders")
 @Getter
-public class Order {
-    private Long id;
-    private Long userId;
-    private OrderStatus status;
-    private long originalAmount;    // 원래 금액
-    private long discountAmount;    // 할인 금액
-    private long finalAmount;       // 최종 결제 금액
-    private Long couponId;          // 사용한 쿠폰 ID (nullable)
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Order extends BaseTimeEntity {
 
-    // 생성자
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OrderStatus status;
+
+    @Column(name = "original_amount", nullable = false)
+    private long originalAmount;    // 원래 금액
+
+    @Column(name = "discount_amount", nullable = false)
+    private long discountAmount;    // 할인 금액
+
+    @Column(name = "final_amount", nullable = false)
+    private long finalAmount;       // 최종 결제 금액
+
+    @Column(name = "coupon_id")
+    private Long couponId;          // 사용한 쿠폰 ID (nullable)
+
     public Order(Long id, Long userId, long originalAmount,
                  long discountAmount, long finalAmount, Long couponId) {
         this.id = id;
@@ -31,26 +44,21 @@ public class Order {
         this.discountAmount = discountAmount;
         this.finalAmount = finalAmount;
         this.couponId = couponId;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    }
+
+    public static Order create(Long userId, long originalAmount,
+                               long discountAmount, long finalAmount, Long couponId) {
+        return new Order(null, userId, originalAmount, discountAmount, finalAmount, couponId);
     }
 
     // ========== 비즈니스 로직 ==========
 
-    /**
-     * 주문 완료 처리
-     */
     public void complete() {
         this.status = OrderStatus.COMPLETED;
-        this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 주문 취소 처리
-     */
     public void cancel() {
         this.status = OrderStatus.CANCELLED;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
