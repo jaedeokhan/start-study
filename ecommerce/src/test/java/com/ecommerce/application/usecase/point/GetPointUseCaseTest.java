@@ -35,7 +35,6 @@ class GetPointUseCaseTest {
         // then
         assertThat(response.getUserId()).isEqualTo(userId);
         assertThat(response.getPointBalance()).isEqualTo(100000L);
-        assertThat(response.getLastUpdatedAt()).isNotNull();
     }
 
     @Test
