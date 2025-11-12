@@ -42,6 +42,7 @@ public class IssueCouponUseCase {
         // 4. 쿠폰 발급 (동시성 제어는 Repository에서)
         couponEventRepository.issueCoupon(couponEventId);
 
+
         // 5. 사용자 쿠폰 생성
         UserCoupon userCoupon = new UserCoupon(
             null,

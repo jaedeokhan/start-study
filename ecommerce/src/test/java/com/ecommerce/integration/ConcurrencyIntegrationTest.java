@@ -11,7 +11,7 @@ import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.memory.*;
-import com.ecommerce.infrastructure.repository.InMemoryPointHistoryRepository;
+import com.ecommerce.infrastructure.memory.InMemoryPointHistoryRepository;
 import com.ecommerce.presentation.dto.coupon.IssueCouponResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
