@@ -6,10 +6,6 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-/**
- * 사용자 Entity
- * - 포인트 관리 비즈니스 로직 포함
- */
 @Getter
 public class User {
     private Long id;
@@ -18,7 +14,6 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 생성자
     public User(Long id, String name, long pointBalance) {
         validatePointBalance(pointBalance);
 
@@ -51,11 +46,6 @@ public class User {
         return this.pointBalance >= amount;
     }
 
-    /**
-     * 포인트 충전
-     * @param amount 충전할 금액
-     * @throws IllegalArgumentException 충전 금액이 0 이하인 경우
-     */
     public void chargePoint(long amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
@@ -64,11 +54,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 포인트 사용
-     * @param amount 사용할 금액
-     * @throws InsufficientPointException 포인트 부족 시
-     */
     public void usePoint(long amount) {
         if (this.pointBalance < amount) {
             throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT);
