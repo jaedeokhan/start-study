@@ -114,7 +114,7 @@ erDiagram
     USER_COUPONS {
         bigint id PK
         bigint user_id FK
-        bigint coupon_id FK
+        bigint coupon_event_id FK
         varchar discount_type
         bigint discount_value
         varchar status
