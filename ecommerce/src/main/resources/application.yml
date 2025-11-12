@@ -2,6 +2,20 @@ spring:
   application:
     name: ecommerce
 
+  datasource:
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  test:
+    database:
+      replace: none # testcontainer가 DB URL 덮어쓰지않게 설정
+
 springdoc:
   api-docs:
     path: /v3/api-docs
