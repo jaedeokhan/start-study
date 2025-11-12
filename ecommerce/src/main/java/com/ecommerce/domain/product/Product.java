@@ -1,26 +1,37 @@
 package com.ecommerce.domain.product;
 
+import com.ecommerce.domain.common.exception.BaseTimeEntity;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 상품 Entity
- * - 재고 관리 비즈니스 로직 포함
- */
+@Entity
+@Table(name = "products")
 @Getter
-public class Product {
-    private Long id;
-    private String name;
-    private String description;
-    private long price;
-    private int stock;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Product extends BaseTimeEntity {
 
-    // 생성자
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 200)
+    private String name;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String description;
+
+    @Column(nullable = false)
+    private long price;
+
+    @Column(nullable = false)
+    private int stock;
+
     public Product(Long id, String name, String description, long price, int stock) {
         validatePrice(price);
         validateStock(stock);
@@ -30,24 +41,20 @@ public class Product {
         this.description = description;
         this.price = price;
         this.stock = stock;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    }
+
+    public static Product create(String name, String description, long price, int stock) {
+        return new Product(null, name, description, price, stock);
     }
 
     // ========== 검증 로직 (Entity 내부) ==========
 
-    /**
-     * 가격 검증
-     */
     private void validatePrice(long price) {
         if (price <= 0) {
             throw new IllegalArgumentException("가격은 0보다 커야 합니다.");
         }
     }
 
-    /**
-     * 재고 검증
-     */
     private void validateStock(int stock) {
         if (stock < 0) {
             throw new IllegalArgumentException("재고는 0 이상이어야 합니다.");
@@ -75,7 +82,6 @@ public class Product {
             throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
         }
         this.stock -= quantity;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -87,6 +93,5 @@ public class Product {
             throw new IllegalArgumentException("복구 수량은 0보다 커야 합니다.");
         }
         this.stock += quantity;
-        this.updatedAt = LocalDateTime.now();
     }
 }
