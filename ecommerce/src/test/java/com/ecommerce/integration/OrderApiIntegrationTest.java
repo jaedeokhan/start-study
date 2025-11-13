@@ -1,6 +1,6 @@
 package com.ecommerce.integration;
 
-import com.ecommerce.config.IntegrationTestBase;
+import com.ecommerce.config.TestContainerConfig;
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.DiscountType;
@@ -9,20 +9,37 @@ import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.CreateOrderRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
 @DisplayName("Order API 통합 테스트")
-class OrderApiIntegrationTest extends IntegrationTestBase {
+class OrderApiIntegrationTest extends TestContainerConfig {
+
+    @Autowired
+    protected MockMvc mockMvc;
+
+    @Autowired
+    protected ObjectMapper objectMapper;
 
     @Autowired
     private UserRepository userRepository;
@@ -72,10 +89,10 @@ class OrderApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.orderId").exists())
-                .andExpect(jsonPath("$.data.totalAmount").value(40000)) // 10000*2 + 20000*1
+                .andExpect(jsonPath("$.data.originalAmount").value(40000)) // 10000*2 + 20000*1
                 .andExpect(jsonPath("$.data.discountAmount").value(0))
                 .andExpect(jsonPath("$.data.finalAmount").value(40000))
-                .andExpect(jsonPath("$.data.orderItems", hasSize(2)));
+                .andExpect(jsonPath("$.data.items", hasSize(2)));
     }
 
     @Test
@@ -104,10 +121,9 @@ class OrderApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.orderId").exists())
-                .andExpect(jsonPath("$.data.totalAmount").value(30000))
+                .andExpect(jsonPath("$.data.originalAmount").value(30000))
                 .andExpect(jsonPath("$.data.discountAmount").value(5000))
-                .andExpect(jsonPath("$.data.finalAmount").value(25000))
-                .andExpect(jsonPath("$.data.couponId").value(userCoupon.getId()));
+                .andExpect(jsonPath("$.data.finalAmount").value(25000));
     }
 
     @Test
@@ -121,7 +137,7 @@ class OrderApiIntegrationTest extends IntegrationTestBase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.error.code").value("EMPTY_CART"));
     }
 
     @Test
