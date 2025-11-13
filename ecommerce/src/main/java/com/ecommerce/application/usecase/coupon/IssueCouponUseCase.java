@@ -27,7 +27,7 @@ public class IssueCouponUseCase {
     @Transactional
     public IssueCouponResponse execute(Long couponEventId, Long userId) {
         // 1. 쿠폰 이벤트 조회
-        CouponEvent couponEvent = couponEventRepository.findById(couponEventId)
+        CouponEvent couponEvent = couponEventRepository.findByIdWithLock(couponEventId)
             .orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
 
         // 2. 쿠폰 발급 가능 여부 검증 (Entity 비즈니스 로직)
@@ -41,8 +41,8 @@ public class IssueCouponUseCase {
             throw new CouponAlreadyIssuedException(CouponErrorCode.COUPON_ALREADY_ISSUED);
         }
 
-        // 4. 쿠폰 발급 (동시성 제어는 Repository에서)
-        couponEventRepository.issueCoupon(couponEventId);
+        // 4. 쿠폰 발급
+        couponEvent.issue();
 
 
         // 5. 사용자 쿠폰 생성
