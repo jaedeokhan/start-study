@@ -4,6 +4,7 @@ import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponEventNotFoundException;
 import com.ecommerce.infrastructure.repository.CouponEventRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
@@ -18,6 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * - ReentrantLock을 활용한 쿠폰 발급 동시성 제어
  */
 @Repository
+@Profile("memory")
 public class InMemoryCouponEventRepository implements CouponEventRepository {
     private final Map<Long, CouponEvent> store = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);

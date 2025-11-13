@@ -4,6 +4,7 @@ import com.ecommerce.domain.user.User;
 import com.ecommerce.domain.user.exception.UserErrorCode;
 import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.infrastructure.repository.UserRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
@@ -19,6 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * - ReentrantLock을 활용한 포인트 충전/사용 동시성 제어
  */
 @Repository
+@Profile("memory")
 public class InMemoryUserRepository implements UserRepository {
     private final Map<Long, User> store = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
