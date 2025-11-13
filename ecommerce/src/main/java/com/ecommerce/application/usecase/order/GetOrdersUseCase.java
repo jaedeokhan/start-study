@@ -5,6 +5,7 @@ import com.ecommerce.infrastructure.repository.OrderRepository;
 import com.ecommerce.presentation.dto.order.OrderListResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ import java.util.List;
 public class GetOrdersUseCase {
     private final OrderRepository orderRepository;
 
+    @Transactional(readOnly = true)
     public OrderListResponse execute(Long userId, int page, int size) {
         // 1. 주문 목록 조회
         List<Order> orders = orderRepository.findByUserId(userId, page, size);

@@ -11,6 +11,7 @@ import com.ecommerce.infrastructure.repository.CouponEventRepository;
 import com.ecommerce.infrastructure.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -23,6 +24,7 @@ public class IssueCouponUseCase {
     private final CouponEventRepository couponEventRepository;
     private final UserCouponRepository userCouponRepository;
 
+    @Transactional
     public IssueCouponResponse execute(Long couponEventId, Long userId) {
         // 1. 쿠폰 이벤트 조회
         CouponEvent couponEvent = couponEventRepository.findById(couponEventId)

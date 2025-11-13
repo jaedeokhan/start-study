@@ -5,6 +5,7 @@ import com.ecommerce.presentation.dto.coupon.CouponEventListResponse;
 import com.ecommerce.infrastructure.repository.CouponEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.List;
 public class GetCouponEventsUseCase {
     private final CouponEventRepository couponEventRepository;
 
+    @Transactional(readOnly = true)
     public CouponEventListResponse execute() {
         // 1. 모든 쿠폰 이벤트 조회
         List<CouponEvent> allEvents = couponEventRepository.findAll();

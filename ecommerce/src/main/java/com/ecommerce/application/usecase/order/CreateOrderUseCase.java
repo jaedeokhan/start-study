@@ -24,6 +24,7 @@ import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +49,10 @@ public class CreateOrderUseCase {
     private final UserCouponRepository userCouponRepository;
     private final CouponEventRepository couponEventRepository;
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @Transactional
     public OrderResponse execute(Long userId, Long userCouponId) {
         // 1. 장바구니 조회
         List<CartItem> cartItems = cartRepository.findByUserId(userId);
@@ -133,7 +136,7 @@ public class CreateOrderUseCase {
                 item.getQuantity(),
                 product.getPrice()
             );
-            orderItems.add(orderRepository.saveOrderItem(orderItem));
+            orderItems.add(orderItemRepository.save(orderItem));
         }
 
         // 9. 장바구니 클리어
