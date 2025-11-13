@@ -6,7 +6,6 @@ import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.infrastructure.jpa.ProductJpaRepository;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
