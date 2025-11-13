@@ -2,6 +2,7 @@ package com.ecommerce.integration;
 
 import com.ecommerce.config.TestContainerConfig;
 import com.ecommerce.domain.product.Product;
+import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -108,7 +109,6 @@ class ProductApiIntegrationTest extends TestContainerConfig {
         mockMvc.perform(get("/api/v1/products/{productId}", 999L)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error").exists());
+                .andExpect(jsonPath("$.error.code").value(ProductErrorCode.PRODUCT_NOT_FOUND.getCode()));
     }
 }

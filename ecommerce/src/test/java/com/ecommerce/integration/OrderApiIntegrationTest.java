@@ -2,9 +2,12 @@ package com.ecommerce.integration;
 
 import com.ecommerce.config.TestContainerConfig;
 import com.ecommerce.domain.cart.CartItem;
+import com.ecommerce.domain.cart.exception.CartErrorCode;
 import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.DiscountType;
 import com.ecommerce.domain.coupon.UserCoupon;
+import com.ecommerce.domain.order.exception.OrderErrorCode;
+import com.ecommerce.domain.point.exception.PointErrorCode;
 import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.repository.*;
@@ -137,7 +140,7 @@ class OrderApiIntegrationTest extends TestContainerConfig {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("EMPTY_CART"));
+                .andExpect(jsonPath("$.error.code").value(CartErrorCode.EMPTY_CART.getCode()));
     }
 
     @Test
@@ -153,7 +156,7 @@ class OrderApiIntegrationTest extends TestContainerConfig {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.error.code").value("INSUFFICIENT_STOCK"));
     }
 
     @Test
@@ -170,7 +173,7 @@ class OrderApiIntegrationTest extends TestContainerConfig {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.error.code").value(PointErrorCode.INSUFFICIENT_POINT.getCode()));
     }
 
     @Test
@@ -194,8 +197,8 @@ class OrderApiIntegrationTest extends TestContainerConfig {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.orders", hasSize(greaterThan(0))))
                 .andExpect(jsonPath("$.data.orders[0].orderId").exists())
-                .andExpect(jsonPath("$.data.orders[0].totalAmount").exists())
-                .andExpect(jsonPath("$.data.pagination.page").value(0))
+                .andExpect(jsonPath("$.data.orders[0].finalAmount").exists())
+                .andExpect(jsonPath("$.data.pagination.currentPage").value(0))
                 .andExpect(jsonPath("$.data.pagination.size").value(10));
     }
 
@@ -225,10 +228,10 @@ class OrderApiIntegrationTest extends TestContainerConfig {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.orderId").value(orderId))
-                .andExpect(jsonPath("$.data.totalAmount").value(20000))
+                .andExpect(jsonPath("$.data.originalAmount").value(20000))
                 .andExpect(jsonPath("$.data.finalAmount").value(20000))
-                .andExpect(jsonPath("$.data.orderItems", hasSize(1)))
-                .andExpect(jsonPath("$.data.orderItems[0].productName").value("상품1"));
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].productName").value("상품1"));
     }
 
     @Test
@@ -237,6 +240,6 @@ class OrderApiIntegrationTest extends TestContainerConfig {
         // when & then
         mockMvc.perform(get("/api/v1/orders/{orderId}", 999999L))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(jsonPath("$.error.code").value(OrderErrorCode.ORDER_NOT_FOUND.getCode()));
     }
 }
