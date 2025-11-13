@@ -3,6 +3,7 @@ package com.ecommerce.application.usecase.product;
 import com.ecommerce.domain.order.Order;
 import com.ecommerce.domain.order.OrderItem;
 import com.ecommerce.domain.product.Product;
+import com.ecommerce.infrastructure.repository.OrderItemRepository;
 import com.ecommerce.presentation.dto.product.PopularProductResponse;
 import com.ecommerce.infrastructure.repository.OrderRepository;
 import com.ecommerce.infrastructure.repository.ProductRepository;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GetPopularProductsUseCase {
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
 
     public PopularProductResponse execute() {
@@ -32,7 +34,7 @@ public class GetPopularProductsUseCase {
         // 3. 상품별 판매량 집계
         Map<Long, Integer> salesCountMap = new HashMap<>();
         for (Order order : recentOrders) {
-            List<OrderItem> items = orderRepository.findOrderItemsByOrderId(order.getId());
+            List<OrderItem> items = orderItemRepository.findOrderItemsByOrderId(order.getId());
             for (OrderItem item : items) {
                 salesCountMap.merge(item.getProductId(), item.getQuantity(), Integer::sum);
             }

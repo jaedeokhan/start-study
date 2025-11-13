@@ -8,6 +8,7 @@ import com.ecommerce.infrastructure.repository.CouponEventRepository;
 import com.ecommerce.infrastructure.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ public class GetUserCouponsUseCase {
     private final UserCouponRepository userCouponRepository;
     private final CouponEventRepository couponEventRepository;
 
+    @Transactional(readOnly = true)
     public UserCouponListResponse execute(Long userId, CouponStatus status) {
         // 1. 사용자의 쿠폰 목록 조회
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);

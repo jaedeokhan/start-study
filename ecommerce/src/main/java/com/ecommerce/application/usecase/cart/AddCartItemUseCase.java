@@ -10,6 +10,7 @@ import com.ecommerce.infrastructure.repository.CartRepository;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class AddCartItemUseCase {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
 
+    @Transactional
     public AddCartItemResponse execute(Long userId, Long productId, int quantity) {
         // 1. 상품 조회
         Product product = productRepository.findById(productId)

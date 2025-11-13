@@ -25,14 +25,15 @@ dependencies {
     implementation(libs.spring.boot.starter.web)
     implementation(libs.springdoc.openapi)
     implementation(libs.spring.boot.starter.data.jpa)
-    runtimeOnly(libs.mariadb.java.client)
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    runtimeOnly("com.mysql:mysql-connector-j")
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     annotationProcessor(libs.spring.boot.configuration.processor)
     testImplementation(libs.spring.boot.starter.test)
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:mariadb")
+    testImplementation("org.testcontainers:mysql")
 }
 
 // about source and compilation
