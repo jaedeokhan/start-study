@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface ProductRepository {
     Optional<Product> findById(Long id);
     List<Product> findAll(int page, int size);
-    List<Product> findByIdIn(List<Long> ids);
+    List<Product> findAllById(List<Long> ids);
     Product save(Product product);
     int getTotalCount();
     void decreaseStock(Long productId, int quantity);

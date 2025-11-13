@@ -43,7 +43,7 @@ public class InMemoryProductRepository implements ProductRepository {
     }
 
     @Override
-    public List<Product> findByIdIn(List<Long> ids) {
+    public List<Product> findAllById(List<Long> ids) {
         return ids.stream()
             .map(store::get)
             .filter(Objects::nonNull)
