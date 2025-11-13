@@ -4,6 +4,7 @@ import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.infrastructure.repository.ProductRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
  * - ReentrantLock을 활용한 재고 차감 동시성 제어
  */
 @Repository
+@Profile("memory")
 public class InMemoryProductRepository implements ProductRepository {
     private final Map<Long, Product> store = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);

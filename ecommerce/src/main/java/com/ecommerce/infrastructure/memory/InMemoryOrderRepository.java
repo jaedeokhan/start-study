@@ -3,6 +3,7 @@ package com.ecommerce.infrastructure.memory;
 import com.ecommerce.domain.order.Order;
 import com.ecommerce.domain.order.OrderItem;
 import com.ecommerce.infrastructure.repository.OrderRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
  * - Order와 OrderItem을 별도로 관리
  */
 @Repository
+@Profile("memory")
 public class InMemoryOrderRepository implements OrderRepository {
     private final Map<Long, Order> orderStore = new ConcurrentHashMap<>();
     private final Map<Long, List<OrderItem>> orderItemStore = new ConcurrentHashMap<>();

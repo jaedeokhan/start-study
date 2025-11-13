@@ -2,6 +2,7 @@ package com.ecommerce.infrastructure.memory;
 
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.infrastructure.repository.CartRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
  * - ConcurrentHashMap 기반 인메모리 저장소
  */
 @Repository
+@Profile("memory")
 public class InMemoryCartRepository implements CartRepository {
     private final Map<Long, CartItem> store = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);

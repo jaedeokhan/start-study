@@ -2,6 +2,7 @@ package com.ecommerce.infrastructure.memory;
 
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.infrastructure.repository.PointHistoryRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
  * PointHistory 인메모리 Repository 구현체
  */
 @Repository
+@Profile("memory")
 public class InMemoryPointHistoryRepository implements PointHistoryRepository {
     private final Map<Long, PointHistory> store = new ConcurrentHashMap<>();
     private final AtomicLong idGenerator = new AtomicLong(1);
