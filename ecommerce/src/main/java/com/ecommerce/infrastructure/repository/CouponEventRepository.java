@@ -24,11 +24,4 @@ public interface CouponEventRepository extends JpaRepository<CouponEvent, Long> 
 
     CouponEvent save(CouponEvent couponEvent);
 
-    default void issueCoupon(Long couponEventId) {
-        CouponEvent couponEvent = findByIdWithLock(couponEventId)
-                .orElseThrow(() -> new
-                        CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
-
-        couponEvent.issue();
-    }
 }
