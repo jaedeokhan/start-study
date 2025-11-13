@@ -1,6 +1,5 @@
 package com.ecommerce.integration;
 
-import com.ecommerce.config.IntegrationTestBase;
 import com.ecommerce.config.TestContainerConfig;
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
@@ -19,9 +18,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -118,7 +119,7 @@ class PointApiIntegrationTest extends TestContainerConfig {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.success").value("false"));
+                .andExpect(jsonPath("$.error.code").value("USER_NOT_FOUND"));
     }
 
     @Test
@@ -138,7 +139,7 @@ class PointApiIntegrationTest extends TestContainerConfig {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.userId").value(testUser.getId()))
                 .andExpect(jsonPath("$.data.histories", hasSize(2)))
-                .andExpect(jsonPath("$.data.histories[0].amount").exists())
+                .andExpect(jsonPath("$.data.histories[0].pointAmount").exists())
                 .andExpect(jsonPath("$.data.histories[0].transactionType").exists())
                 .andExpect(jsonPath("$.data.histories[0].balanceAfter").exists());
     }
