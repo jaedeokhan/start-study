@@ -46,7 +46,7 @@ public class GetPopularProductsUseCase {
             .collect(Collectors.toList());
 
         // 5. 상품 정보 조회
-        List<Product> popularProducts = productRepository.findByIdIn(topProductIds);
+        List<Product> popularProducts = productRepository.findAllById(topProductIds);
 
         // 6. 응답 생성
         return PopularProductResponse.from(popularProducts, salesCountMap, threeDaysAgo);

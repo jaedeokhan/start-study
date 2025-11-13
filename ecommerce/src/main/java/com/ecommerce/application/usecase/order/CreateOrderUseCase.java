@@ -61,7 +61,7 @@ public class CreateOrderUseCase {
         List<Long> productIds = cartItems.stream()
             .map(CartItem::getProductId)
             .collect(Collectors.toList());
-        List<Product> products = productRepository.findByIdIn(productIds);
+        List<Product> products = productRepository.findAllById(productIds);
         Map<Long, Product> productMap = products.stream()
             .collect(Collectors.toMap(Product::getId, p -> p));
 
