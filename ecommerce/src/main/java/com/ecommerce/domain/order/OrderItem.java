@@ -8,13 +8,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "order_items",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_order_items_order_id",
-                        columnNames = {"order_id"}
-                )
-        },
         indexes = {
+                @Index(name = "idx_order_item_order_id", columnList = "order_id"),
                 @Index(name = "idx_order_item_covering", columnList = "order_id, product_id, quantity")
         }
 )
