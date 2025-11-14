@@ -7,7 +7,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "orders")
+@Table(
+        name = "orders",
+        indexes = {
+                @Index(name = "idx_order_status_id_created_at", columnList = "status, created_at, id")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order extends BaseTimeEntity {
@@ -39,7 +44,7 @@ public class Order extends BaseTimeEntity {
                  long discountAmount, long finalAmount, Long couponId) {
         this.id = id;
         this.userId = userId;
-        this.status = OrderStatus.PENDING;
+        this.status = OrderStatus.COMPLETED;
         this.originalAmount = originalAmount;
         this.discountAmount = discountAmount;
         this.finalAmount = finalAmount;

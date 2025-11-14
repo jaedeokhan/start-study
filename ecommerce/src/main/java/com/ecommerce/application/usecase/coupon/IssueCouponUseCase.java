@@ -26,19 +26,20 @@ public class IssueCouponUseCase {
 
     @Transactional
     public IssueCouponResponse execute(Long couponEventId, Long userId) {
-        // 1. 쿠폰 이벤트 조회
+
+        // 1. 중복 발급 체크
+        if (userCouponRepository.existsByUserIdAndCouponEventId(userId, couponEventId)) {
+            throw new CouponAlreadyIssuedException(CouponErrorCode.COUPON_ALREADY_ISSUED);
+        }
+
+        // 2. 쿠폰 이벤트 조회
         CouponEvent couponEvent = couponEventRepository.findByIdWithLock(couponEventId)
             .orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
 
-        // 2. 쿠폰 발급 가능 여부 검증 (Entity 비즈니스 로직)
+        // 3. 쿠폰 발급 가능 여부 검증 (Entity 비즈니스 로직)
         LocalDateTime now = LocalDateTime.now();
         if (!couponEvent.isAvailable(now)) {
             throw new CouponExpiredException(CouponErrorCode.COUPON_EXPIRED);
-        }
-
-        // 3. 중복 발급 체크
-        if (userCouponRepository.existsByUserIdAndCouponEventId(userId, couponEventId)) {
-            throw new CouponAlreadyIssuedException(CouponErrorCode.COUPON_ALREADY_ISSUED);
         }
 
         // 4. 쿠폰 발급

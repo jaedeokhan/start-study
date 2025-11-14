@@ -6,7 +6,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "order_items")
+@Table(
+        name = "order_items",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_order_items_order_id",
+                        columnNames = {"order_id"}
+                )
+        },
+        indexes = {
+                @Index(name = "idx_order_item_covering", columnList = "order_id, product_id, quantity")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {

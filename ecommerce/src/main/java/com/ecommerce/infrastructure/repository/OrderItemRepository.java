@@ -15,7 +15,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
         SELECT oi.productId as productId, SUM(oi.quantity) as totalQuantity
         FROM OrderItem oi
         JOIN Order o ON oi.orderId = o.id
-        WHERE o.createdAt >= :startDate
+        WHERE o.status = 'COMPLETED'
         GROUP BY oi.productId
         ORDER BY totalQuantity DESC
         LIMIT 5
