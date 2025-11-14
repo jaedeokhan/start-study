@@ -35,11 +35,10 @@ public class GetUserCouponsUseCase {
             .distinct()
             .collect(Collectors.toList());
 
-        // findAll()로 전체 조회 후 필터링
-        List<CouponEvent> allEvents = couponEventRepository.findAll();
-        Map<Long, CouponEvent> couponEventMap = allEvents.stream()
-            .filter(event -> couponEventIds.contains(event.getId()))
-            .collect(Collectors.toMap(CouponEvent::getId, e -> e));
+        Map<Long, CouponEvent> couponEventMap = couponEventRepository.findAllById(couponEventIds)
+                .stream()
+                .filter(event -> couponEventIds.contains(event.getId()))
+                .collect(Collectors.toMap(CouponEvent::getId, e -> e));
 
         // 3. 상태 필터링 (필요한 경우)
         LocalDateTime now = LocalDateTime.now();
