@@ -66,7 +66,7 @@ public class IssueCouponResponse {
             userCoupon.getStatus(couponEvent, LocalDateTime.now()),
             userCoupon.getIssuedAt(),
             userCoupon.getUsedAt(),
-            userCoupon.getValidUntil()
+            userCoupon.getEndDate()
         );
     }
 }

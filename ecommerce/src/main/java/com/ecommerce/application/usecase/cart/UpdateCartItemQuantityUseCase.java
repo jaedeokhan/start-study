@@ -12,6 +12,7 @@ import com.ecommerce.infrastructure.repository.CartRepository;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * US-CART-003: 장바구니 상품 수량 변경
@@ -22,6 +23,7 @@ public class UpdateCartItemQuantityUseCase {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
 
+    @Transactional
     public UpdateCartItemResponse execute(Long cartItemId, int quantity) {
         // 1. 장바구니 아이템 조회
         CartItem cartItem = cartRepository.findById(cartItemId)

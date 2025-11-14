@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
  * - Application 시작 시 테스트용 데이터 생성
  */
 @Slf4j
-@Component
+//@Component
 @RequiredArgsConstructor
 public class DataInitializer {
     private final ProductRepository productRepository;

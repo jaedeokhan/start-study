@@ -1,31 +1,56 @@
 package com.ecommerce.domain.coupon;
 
-import com.ecommerce.domain.coupon.DiscountType;
 import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponSoldOutException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 쿠폰 이벤트 Entity
- * - 쿠폰 발급 관리 비즈니스 로직 포함
- */
+@Entity
+@Table(name = "coupon_events")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class CouponEvent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "discount_type", nullable = false, length = 20)
     private DiscountType discountType;
+
+    @Column(name = "discount_amount")
     private long discountAmount;      // AMOUNT 타입일 때 사용
+
+    @Column(name = "discount_rate")
     private int discountRate;         // RATE 타입일 때 사용 (%)
+
+    @Column(name = "max_discount_amount")
     private int maxDiscountAmount;    // RATE 타입의 최대 할인액
+
+    @Column(name = "total_quantity", nullable = false)
     private int totalQuantity;        // 총 발급 가능 수량
+
+    @Column(name = "issued_quantity", nullable = false)
     private int issuedQuantity;       // 현재까지 발급된 수량
+
+    @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;  // 이벤트 시작일
+
+    @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;    // 이벤트 종료일
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 생성자 - AMOUNT 타입
+    // AMOUNT 타입
     public CouponEvent(Long id, String name, DiscountType discountType,
                        long discountAmount, int totalQuantity,
                        LocalDateTime startDate, LocalDateTime endDate) {
@@ -40,7 +65,7 @@ public class CouponEvent {
         this.createdAt = LocalDateTime.now();
     }
 
-    // 생성자 - RATE 타입
+    // RATE 타입
     public CouponEvent(Long id, String name, DiscountType discountType,
                        int discountRate, int maxDiscountAmount, int totalQuantity,
                        LocalDateTime startDate, LocalDateTime endDate) {
@@ -65,10 +90,6 @@ public class CouponEvent {
         return this.issuedQuantity < this.totalQuantity;
     }
 
-    /**
-     * 쿠폰 발급 (수량 증가)
-     * @throws CouponSoldOutException 쿠폰 소진 시
-     */
     public void issue() {
         if (!canIssue()) {
             throw new CouponSoldOutException(CouponErrorCode.COUPON_SOLD_OUT);

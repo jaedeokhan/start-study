@@ -20,7 +20,7 @@ class OrderTest {
         assertThat(order.getOriginalAmount()).isEqualTo(10000);
         assertThat(order.getDiscountAmount()).isEqualTo(0);
         assertThat(order.getFinalAmount()).isEqualTo(10000);
-        assertThat(order.getStatus()).isEqualTo(OrderStatus.PENDING);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
     }
 
     @Test

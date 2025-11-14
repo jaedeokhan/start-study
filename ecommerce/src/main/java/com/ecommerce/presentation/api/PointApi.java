@@ -17,20 +17,20 @@ import org.springframework.web.bind.annotation.*;
 public interface PointApi {
 
     @Operation(summary = "포인트 조회", description = "사용자의 현재 포인트를 조회합니다")
-    @GetMapping("/point")
+    @GetMapping("/points/{userId}")
     ResponseEntity<ApiResponse<PointResponse>> getPoint(
-        @Parameter(description = "사용자 ID", required = true) @RequestParam Long userId
+        @Parameter(description = "사용자 ID", required = true) @PathVariable Long userId
     );
 
     @Operation(summary = "포인트 충전", description = "사용자의 포인트를 충전합니다")
-    @PostMapping("/point/charge")
+    @PostMapping("/points/charge")
     ResponseEntity<ApiResponse<ChargePointResponse>> chargePoint(
         @Valid @RequestBody ChargePointRequest request
     );
 
     @Operation(summary = "포인트 이력 조회", description = "사용자의 포인트 이력을 조회합니다")
-    @GetMapping("/point/history")
+    @GetMapping("/points/{userId}/history")
     ResponseEntity<ApiResponse<PointHistoryListResponse>> getPointHistory(
-        @Parameter(description = "사용자 ID", required = true) @RequestParam Long userId
+        @Parameter(description = "사용자 ID", required = true) @PathVariable Long userId
     );
 }

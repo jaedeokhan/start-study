@@ -5,6 +5,7 @@ import com.ecommerce.infrastructure.repository.PointHistoryRepository;
 import com.ecommerce.presentation.dto.point.PointHistoryListResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,14 +17,9 @@ import java.util.List;
 public class GetPointHistoryUseCase {
     private final PointHistoryRepository pointHistoryRepository;
 
+    @Transactional(readOnly = true)
     public PointHistoryListResponse execute(Long userId) {
         List<PointHistory> histories = pointHistoryRepository.findByUserId(userId);
-        return PointHistoryListResponse.from(userId, histories);
-    }
-
-    public PointHistoryListResponse executeWithPagination(Long userId, int page, int size) {
-        int offset = page * size;
-        List<PointHistory> histories = pointHistoryRepository.findByUserIdWithPagination(userId, offset, size);
         return PointHistoryListResponse.from(userId, histories);
     }
 }

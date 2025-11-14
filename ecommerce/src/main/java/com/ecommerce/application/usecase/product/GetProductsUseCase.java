@@ -5,6 +5,7 @@ import com.ecommerce.presentation.dto.product.ProductListResponse;
 import com.ecommerce.infrastructure.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ import java.util.List;
 public class GetProductsUseCase {
     private final ProductRepository productRepository;
 
+    @Transactional(readOnly = true)
     public ProductListResponse execute(int page, int size) {
         // 1. 상품 목록 조회
         List<Product> products = productRepository.findAll(page, size);

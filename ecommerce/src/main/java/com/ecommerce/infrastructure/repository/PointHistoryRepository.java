@@ -1,14 +1,17 @@
 package com.ecommerce.infrastructure.repository;
 
 import com.ecommerce.domain.point.PointHistory;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-/**
- * PointHistory Repository Interface
- */
-public interface PointHistoryRepository {
+public interface PointHistoryRepository extends JpaRepository<PointHistory, Long> {
+
+    List<PointHistory> findByUserIdOrderByCreatedAtDesc(Long userId);
+
     PointHistory save(PointHistory pointHistory);
-    List<PointHistory> findByUserId(Long userId);
-    List<PointHistory> findByUserIdWithPagination(Long userId, int offset, int limit);
+
+    default List<PointHistory> findByUserId(Long userId) {
+        return findByUserIdOrderByCreatedAtDesc(userId);
+    }
 }

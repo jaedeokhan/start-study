@@ -9,6 +9,7 @@ spring_mockk = "4.0.2"
 
 lombok = "1.18.22"
 springdoc_openapi = "2.3.0"
+mariadb = "3.3.1"
 
 redisson = "3.25.2"
 # test
@@ -46,6 +47,8 @@ test_containers_mysql = { module = "org.testcontainers:mysql" }
 fixture_monkey_starter_kotlin = { module = "com.navercorp.fixturemonkey:fixture-monkey-starter-kotlin", version.ref = "fixture_monkey" }
 
 mysql_connector = { module = "com.mysql:mysql-connector-j" }
+
+mariadb_java_client = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb"}
 
 h2 = { module = "com.h2database:h2" }
 

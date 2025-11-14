@@ -104,7 +104,7 @@ public class UserCouponListResponse {
                     status,
                     userCoupon.getIssuedAt(),
                     userCoupon.getUsedAt(),
-                    userCoupon.getValidUntil()
+                    userCoupon.getEndDate()
                 );
             })
             .collect(Collectors.toList());
