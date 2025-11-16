@@ -10,6 +10,7 @@ import com.ecommerce.infrastructure.repository.PointHistoryRepository;
 import com.ecommerce.infrastructure.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * US-PAY-002: 포인트 충전
@@ -20,6 +21,7 @@ public class ChargePointUseCase {
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @Transactional
     public ChargePointResponse execute(Long userId, long amount) {
         // 1. 사용자 조회
         User user = userRepository.findById(userId)
@@ -28,7 +30,7 @@ public class ChargePointUseCase {
         // 2. 충전 전 포인트 저장
         long previousBalance = user.getPointBalance();
 
-        // 3. 포인트 충전 (동시성 제어는 Repository에서)
+        // 3. 포인트 충전 (비관적 락)
         userRepository.chargePoint(userId, amount);
 
         // 4. 충전 후 사용자 정보 재조회

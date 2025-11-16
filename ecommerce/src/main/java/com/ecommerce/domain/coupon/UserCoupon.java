@@ -1,37 +1,62 @@
 package com.ecommerce.domain.coupon;
 
-import com.ecommerce.domain.coupon.CouponStatus;
 import com.ecommerce.domain.coupon.exception.CouponAlreadyUsedException;
 import com.ecommerce.domain.coupon.exception.CouponErrorCode;
 import com.ecommerce.domain.coupon.exception.CouponExpiredException;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-/**
- * 사용자 쿠폰 Entity
- * - 쿠폰 사용 관리 비즈니스 로직 포함
- */
+@Entity
+@Table(
+        name = "user_coupons",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_user_coupon",
+                        columnNames = {"user_id", "coupon_event_id"}
+                )
+        }
+)
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserCoupon {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Column(name = "coupon_event_id", nullable = false)
     private Long couponEventId;
+
+    @Column(name = "is_used", nullable = false)
     private boolean isUsed;
-    private LocalDateTime validFrom;
-    private LocalDateTime validUntil;
+
+    @Column(name = "start_date", nullable = false)
+    private LocalDateTime startDate;
+
+    @Column(name = "end_date", nullable = false)
+    private LocalDateTime endDate;
+
+    @Column(name = "issued_at", nullable = false)
     private LocalDateTime issuedAt;
+
+    @Column(name = "used_at")
     private LocalDateTime usedAt;
 
-    // 생성자
     public UserCoupon(Long id, Long userId, Long couponEventId,
-                      LocalDateTime validFrom, LocalDateTime validUntil) {
+                      LocalDateTime startDate, LocalDateTime endDate) {
         this.id = id;
         this.userId = userId;
         this.couponEventId = couponEventId;
         this.isUsed = false;
-        this.validFrom = validFrom;
-        this.validUntil = validUntil;
+        this.startDate = startDate;
+        this.endDate = endDate;
         this.issuedAt = LocalDateTime.now();
     }
 
@@ -48,7 +73,7 @@ public class UserCoupon {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(validFrom) || now.isAfter(validUntil)) {
+        if (now.isBefore(startDate) || now.isAfter(endDate)) {
             throw new CouponExpiredException(CouponErrorCode.COUPON_EXPIRED);
         }
     }
@@ -64,11 +89,8 @@ public class UserCoupon {
         this.usedAt = LocalDateTime.now();
     }
 
-    /**
-     * 만료 여부 확인
-     */
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(validUntil);
+        return LocalDateTime.now().isAfter(endDate);
     }
 
     /**
@@ -79,7 +101,7 @@ public class UserCoupon {
             return false;
         }
         LocalDateTime now = LocalDateTime.now();
-        return !now.isBefore(validFrom) && !now.isAfter(validUntil);
+        return !now.isBefore(startDate) && !now.isAfter(endDate);
     }
 
     /**
@@ -90,7 +112,7 @@ public class UserCoupon {
         if (this.isUsed) {
             return CouponStatus.USED;
         }
-        if (now.isAfter(this.validUntil)) {
+        if (now.isAfter(this.endDate)) {
             return CouponStatus.EXPIRED;
         }
         return CouponStatus.AVAILABLE;

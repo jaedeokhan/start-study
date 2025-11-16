@@ -1,23 +1,38 @@
 package com.ecommerce.domain.cart;
 
+import com.ecommerce.domain.common.exception.BaseTimeEntity;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-/**
- * 장바구니 아이템 Entity
- * - 수량 관리 비즈니스 로직 포함
- */
+@Entity
+@Table(
+        name = "cart_items",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_cart_user_product",
+                        columnNames = {"user_id", "product_id"}
+                )
+        }
+)
 @Getter
-public class CartItem {
-    private Long id;
-    private Long userId;
-    private Long productId;
-    private int quantity;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class CartItem extends BaseTimeEntity {
 
-    // 생성자
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
+
+    @Column(nullable = false)
+    private int quantity;
+
     public CartItem(Long id, Long userId, Long productId, int quantity) {
         validateQuantity(quantity);
 
@@ -25,15 +40,10 @@ public class CartItem {
         this.userId = userId;
         this.productId = productId;
         this.quantity = quantity;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
     }
 
     // ========== 검증 로직 (Entity 내부) ==========
 
-    /**
-     * 수량 검증
-     */
     private void validateQuantity(int quantity) {
         if (quantity < 1) {
             throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
@@ -49,7 +59,6 @@ public class CartItem {
     public void increaseQuantity(int amount) {
         validateQuantity(amount);
         this.quantity += amount;
-        this.updatedAt = LocalDateTime.now();
     }
 
     /**
@@ -59,6 +68,5 @@ public class CartItem {
     public void updateQuantity(int newQuantity) {
         validateQuantity(newQuantity);
         this.quantity = newQuantity;
-        this.updatedAt = LocalDateTime.now();
     }
 }

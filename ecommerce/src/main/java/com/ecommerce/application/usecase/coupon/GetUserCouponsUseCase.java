@@ -8,6 +8,7 @@ import com.ecommerce.infrastructure.repository.CouponEventRepository;
 import com.ecommerce.infrastructure.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ public class GetUserCouponsUseCase {
     private final UserCouponRepository userCouponRepository;
     private final CouponEventRepository couponEventRepository;
 
+    @Transactional(readOnly = true)
     public UserCouponListResponse execute(Long userId, CouponStatus status) {
         // 1. 사용자의 쿠폰 목록 조회
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);
@@ -33,11 +35,10 @@ public class GetUserCouponsUseCase {
             .distinct()
             .collect(Collectors.toList());
 
-        // findAll()로 전체 조회 후 필터링
-        List<CouponEvent> allEvents = couponEventRepository.findAll();
-        Map<Long, CouponEvent> couponEventMap = allEvents.stream()
-            .filter(event -> couponEventIds.contains(event.getId()))
-            .collect(Collectors.toMap(CouponEvent::getId, e -> e));
+        Map<Long, CouponEvent> couponEventMap = couponEventRepository.findAllById(couponEventIds)
+                .stream()
+                .filter(event -> couponEventIds.contains(event.getId()))
+                .collect(Collectors.toMap(CouponEvent::getId, e -> e));
 
         // 3. 상태 필터링 (필요한 경우)
         LocalDateTime now = LocalDateTime.now();

@@ -1,20 +1,40 @@
 package com.ecommerce.domain.order;
 
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-/**
- * 주문 항목 Entity
- * - 주문 내 개별 상품 정보
- */
+@Entity
+@Table(
+        name = "order_items",
+        indexes = {
+                @Index(name = "idx_order_item_order_id", columnList = "order_id"),
+                @Index(name = "idx_order_item_covering", columnList = "order_id, product_id, quantity")
+        }
+)
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "order_id", nullable = false)
     private Long orderId;
+
+    @Column(name = "product_id", nullable = false)
     private Long productId;
+
+    @Column(name = "product_name", nullable = false, length = 200)
     private String productName;
+
+    @Column(nullable = false)
     private int quantity;
+
+    @Column(nullable = false)
     private long price;          // 주문 시점의 상품 가격
-    private long subtotal;       // 소계 (price * quantity)
 
     // 생성자
     public OrderItem(Long id, Long orderId, Long productId,
@@ -32,6 +52,5 @@ public class OrderItem {
         this.productName = productName;
         this.quantity = quantity;
         this.price = price;
-        this.subtotal = price * quantity;
     }
 }
