@@ -1,32 +1,39 @@
 package com.ecommerce.domain.user;
 
+import com.ecommerce.domain.common.exception.BaseTimeEntity;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.point.exception.PointErrorCode;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-/**
- * 사용자 Entity
- * - 포인트 관리 비즈니스 로직 포함
- */
+@Entity
+@Table(name = "users")
 @Getter
-public class User {
-    private Long id;
-    private String name;
-    private long pointBalance;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class User extends BaseTimeEntity {
 
-    // 생성자
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(name = "point_balance", nullable = false)
+    private long pointBalance;
+
     public User(Long id, String name, long pointBalance) {
         validatePointBalance(pointBalance);
 
         this.id = id;
         this.name = name;
         this.pointBalance = pointBalance;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    }
+
+    public static User create(String name, long pointBalance) {
+        return new User(null, name, pointBalance);
     }
 
     // ========== 검증 로직 (Entity 내부) ==========
@@ -51,29 +58,17 @@ public class User {
         return this.pointBalance >= amount;
     }
 
-    /**
-     * 포인트 충전
-     * @param amount 충전할 금액
-     * @throws IllegalArgumentException 충전 금액이 0 이하인 경우
-     */
     public void chargePoint(long amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
         }
         this.pointBalance += amount;
-        this.updatedAt = LocalDateTime.now();
     }
 
-    /**
-     * 포인트 사용
-     * @param amount 사용할 금액
-     * @throws InsufficientPointException 포인트 부족 시
-     */
     public void usePoint(long amount) {
         if (this.pointBalance < amount) {
             throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT);
         }
         this.pointBalance -= amount;
-        this.updatedAt = LocalDateTime.now();
     }
 }
