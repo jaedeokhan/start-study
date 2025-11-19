@@ -8,7 +8,12 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "point_histories")
+@Table(
+        name = "point_histories",
+        indexes = {
+                @Index(name = "idx_point_history_user_id", columnList = "user_id, created_at DESC")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointHistory {
