@@ -83,11 +83,9 @@ public class CreateOrderUseCase {
         CouponEvent couponEvent = null;
 
         if (userCouponId != null) {
-            userCoupon = userCouponRepository.findById(userCouponId)
-                .orElseThrow(() -> new CouponNotFoundException(CouponErrorCode.COUPON_NOT_FOUND));
+            userCoupon = userCouponRepository.findByIdOrThrow(userCouponId);
 
-            couponEvent = couponEventRepository.findById(userCoupon.getCouponEventId())
-                .orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
+            couponEvent = couponEventRepository.findByIdOrThrow(userCoupon.getCouponEventId());
 
             // 쿠폰 사용 가능 여부 검증
             userCoupon.validateUsable();
@@ -103,8 +101,7 @@ public class CreateOrderUseCase {
         long finalAmount = totalAmount - discountAmount;
 
         // 6. 사용자 포인트 차감
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByIdOrThrow(userId);
 
         if (!user.hasPoint(finalAmount)) {
             throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT
@@ -137,8 +134,7 @@ public class CreateOrderUseCase {
         cartRepository.deleteByUserId(userId);
 
         // 10. 포인트 이력 저장
-        User updatedUser = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+        User updatedUser = userRepository.findByIdOrThrow(userId);
 
         PointHistory pointHistory = new PointHistory(
             null,
