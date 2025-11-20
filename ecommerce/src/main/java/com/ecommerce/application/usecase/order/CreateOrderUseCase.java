@@ -55,18 +55,10 @@ public class CreateOrderUseCase {
     @Transactional
     public OrderResponse execute(Long userId, Long userCouponId) {
         // 1. 장바구니 조회
-        List<CartItem> cartItems = cartRepository.findByUserId(userId);
-        if (cartItems.isEmpty()) {
-            throw new EmptyCartException(CartErrorCode.EMPTY_CART);
-        }
+        List<CartItem> cartItems = validateAndGetCartItems(userId);
 
         // 2. 상품 정보 조회
-        List<Long> productIds = cartItems.stream()
-            .map(CartItem::getProductId)
-            .collect(Collectors.toList());
-        List<Product> products = productRepository.findAllById(productIds);
-        Map<Long, Product> productMap = products.stream()
-            .collect(Collectors.toMap(Product::getId, p -> p));
+        Map<Long, Product> productMap = fetchAndValidateProducts(cartItems);
 
         // 3. 재고 확인 및 차감 (동시성 제어는 Repository에서)
         for (CartItem item : cartItems) {
@@ -110,7 +102,7 @@ public class CreateOrderUseCase {
 
         long finalAmount = totalAmount - discountAmount;
 
-        // 6. 사용자 포인트 차감 (동시성 제어는 Repository에서)
+        // 6. 사용자 포인트 차감
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
 
@@ -118,6 +110,8 @@ public class CreateOrderUseCase {
             throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT
             );
         }
+
+        // 비관적 락 - 동시성 제어
         userRepository.usePoint(userId, finalAmount);
 
         // 7. 주문 생성
@@ -161,16 +155,41 @@ public class CreateOrderUseCase {
         return OrderResponse.from(order, orderItems);
     }
 
-    private long calculateDiscount(CouponEvent couponEvent, long totalAmount) {
-        switch (couponEvent.getDiscountType()) {
-            case AMOUNT:
-                return couponEvent.getDiscountAmount();
-            case RATE:
-                long calculatedDiscount = totalAmount * couponEvent.getDiscountRate() / 100;
-                int maxDiscount = couponEvent.getMaxDiscountAmount();
-                return Math.min(calculatedDiscount, maxDiscount);
-            default:
-                return 0;
+    private List<CartItem> validateAndGetCartItems(Long userId) {
+        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        if (cartItems.isEmpty()) {
+            throw new EmptyCartException(CartErrorCode.EMPTY_CART);
         }
+        return cartItems;
+    }
+
+    private Map<Long, Product> fetchAndValidateProducts(List<CartItem> cartItems) {
+        List<Long> productIds = cartItems.stream()
+                .map(CartItem::getProductId)
+                .collect(Collectors.toList());
+
+        List<Product> products = productRepository.findAllById(productIds);
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, product -> product));
+
+        // 재고 검증
+        for (CartItem item : cartItems) {
+            Product product = productMap.get(item.getProductId());
+            if (!product.hasStock(item.getQuantity())) {
+                throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
+            }
+        }
+
+        return productMap;
+    }
+
+    private long calculateDiscount(CouponEvent couponEvent, long totalAmount) {
+        return switch (couponEvent.getDiscountType()) {
+            case AMOUNT -> couponEvent.getDiscountAmount();
+            case RATE -> Math.min(
+                    totalAmount * couponEvent.getDiscountRate() / 100,
+                    couponEvent.getMaxDiscountAmount()
+            );
+        };
     }
 }
