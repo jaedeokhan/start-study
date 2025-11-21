@@ -19,8 +19,7 @@ public class GetPointUseCase {
 
     @Transactional(readOnly = true)
     public PointResponse execute(Long userId) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByIdOrThrow(userId);
 
         return PointResponse.from(user);
     }

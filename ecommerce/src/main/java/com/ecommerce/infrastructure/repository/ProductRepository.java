@@ -15,7 +15,9 @@ import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long>  {
 
-    Optional<Product> findById(Long id);
+    default Product findByIdOrThrow(Long id) {
+        return findById(id).orElseThrow(() -> new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND));
+    }
 
     default List<Product> findAll(int page, int size) {
         return findAll(PageRequest.of(page, size)).getContent();

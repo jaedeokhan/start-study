@@ -33,8 +33,8 @@ public class PointController implements PointApi {
     @Override
     public ResponseEntity<ApiResponse<ChargePointResponse>> chargePoint(ChargePointRequest request) {
         ChargePointResponse response = chargePointUseCase.execute(
-            request.getUserId(),
-            request.getAmount()
+            request.userId(),
+            request.amount()
         );
         return ResponseEntity.ok(ApiResponse.of(response));
     }

@@ -121,7 +121,7 @@ class CouponConcurrencyIntegrationTest extends TestContainerConfig {
         long issuedCount = userCouponRepository.count();
         assertThat(issuedCount).isEqualTo(50);
 
-        CouponEvent result = couponEventRepository.findById(couponEvent.getId()).orElseThrow();
+        CouponEvent result = couponEventRepository.findByIdOrThrow(couponEvent.getId());
         assertThat(result.getIssuedQuantity()).isEqualTo(50);
         assertThat(result.getRemainingQuantity()).isEqualTo(0);
     }
@@ -185,7 +185,7 @@ class CouponConcurrencyIntegrationTest extends TestContainerConfig {
         long issuedCount = userCouponRepository.count();
         assertThat(issuedCount).isEqualTo(100);
 
-        CouponEvent result = couponEventRepository.findById(couponEvent.getId()).orElseThrow();
+        CouponEvent result = couponEventRepository.findByIdOrThrow(couponEvent.getId());
         assertThat(result.getIssuedQuantity()).isEqualTo(100);
         assertThat(result.getRemainingQuantity()).isEqualTo(0);
     }
@@ -249,7 +249,7 @@ class CouponConcurrencyIntegrationTest extends TestContainerConfig {
         long issuedCount = userCouponRepository.count();
         assertThat(issuedCount).isEqualTo(10);
 
-        CouponEvent result = couponEventRepository.findById(couponEvent.getId()).orElseThrow();
+        CouponEvent result = couponEventRepository.findByIdOrThrow(couponEvent.getId());
         assertThat(result.getIssuedQuantity()).isEqualTo(10);
         assertThat(result.getRemainingQuantity()).isEqualTo(0);
     }
@@ -309,7 +309,7 @@ class CouponConcurrencyIntegrationTest extends TestContainerConfig {
         long issuedCount = userCouponRepository.countByUserId(user.getId());
         assertThat(issuedCount).isEqualTo(1);
 
-        CouponEvent result = couponEventRepository.findById(couponEvent.getId()).orElseThrow();
+        CouponEvent result = couponEventRepository.findByIdOrThrow(couponEvent.getId());
         assertThat(result.getIssuedQuantity()).isEqualTo(1);
     }
 }

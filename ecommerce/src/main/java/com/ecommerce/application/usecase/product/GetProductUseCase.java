@@ -18,8 +18,7 @@ public class GetProductUseCase {
 
     public ProductResponse execute(Long productId) {
         // 1. 상품 조회
-        Product product = productRepository.findById(productId)
-            .orElseThrow(() -> new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND));
+        Product product = productRepository.findByIdOrThrow(productId);
 
         // 2. 응답 생성
         return ProductResponse.from(product);

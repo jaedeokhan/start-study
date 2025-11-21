@@ -27,7 +27,7 @@ public class OrderController implements OrderApi {
 
     @Override
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(CreateOrderRequest request) {
-        OrderResponse response = createOrderUseCase.execute(request.getUserId(), request.getCouponId());
+        OrderResponse response = createOrderUseCase.execute(request.userId(), request.couponId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 

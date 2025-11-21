@@ -23,7 +23,7 @@ public class GetOrdersUseCase {
         List<Order> orders = orderRepository.findByUserId(userId, page, size);
 
         // 2. 페이지네이션 정보 계산 (simplified - use orders size)
-        int totalElements = orders.size();
+        int totalElements = orderRepository.countByUserId(userId);
         int totalPages = (int) Math.ceil((double) totalElements / size);
 
         // 3. 응답 생성

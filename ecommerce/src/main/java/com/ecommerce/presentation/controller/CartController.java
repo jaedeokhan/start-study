@@ -38,9 +38,9 @@ public class CartController implements CartApi {
     @Override
     public ResponseEntity<ApiResponse<AddCartItemResponse>> addCartItem(AddCartItemRequest request) {
         AddCartItemResponse response = addCartItemUseCase.execute(
-            request.getUserId(),
-            request.getProductId(),
-            request.getQuantity()
+            request.userId(),
+            request.productId(),
+            request.quantity()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
@@ -52,7 +52,7 @@ public class CartController implements CartApi {
     ) {
         UpdateCartItemResponse response = updateCartItemQuantityUseCase.execute(
             cartItemId,
-            request.getQuantity()
+            request.quantity()
         );
         return ResponseEntity.ok(ApiResponse.of(response));
     }

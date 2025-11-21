@@ -18,9 +18,7 @@ public class RemoveCartItemUseCase {
     @Transactional
     public void execute(Long cartItemId) {
         // 1. 장바구니 아이템 존재 확인
-        if (!cartRepository.findById(cartItemId).isPresent()) {
-            throw new CartItemNotFoundException(CartErrorCode.CART_ITEM_NOT_FOUND);
-        }
+        cartRepository.findByIdOrThrow(cartItemId);
 
         // 2. 삭제
         cartRepository.deleteById(cartItemId);

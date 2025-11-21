@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,7 +52,7 @@ public interface OrderApi {
                     required = true,
                     content = @Content(schema = @Schema(implementation = CreateOrderRequest.class))
             )
-            @RequestBody CreateOrderRequest request
+            @RequestBody @Valid CreateOrderRequest request
     );
 
     @Operation(
