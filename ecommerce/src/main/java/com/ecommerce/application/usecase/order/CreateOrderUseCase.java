@@ -1,28 +1,28 @@
 package com.ecommerce.application.usecase.order;
 
 import com.ecommerce.domain.cart.CartItem;
-import com.ecommerce.domain.point.PointHistory;
-import com.ecommerce.domain.point.TransactionType;
-import com.ecommerce.domain.product.Product;
-import com.ecommerce.domain.order.Order;
-import com.ecommerce.domain.order.OrderItem;
-import com.ecommerce.domain.user.User;
-import com.ecommerce.domain.coupon.UserCoupon;
-import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.cart.exception.CartErrorCode;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
-import com.ecommerce.domain.coupon.exception.CouponErrorCode;
-import com.ecommerce.domain.coupon.exception.CouponEventNotFoundException;
-import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
+import com.ecommerce.domain.coupon.CouponEvent;
+import com.ecommerce.domain.coupon.UserCoupon;
+import com.ecommerce.domain.order.Order;
+import com.ecommerce.domain.order.OrderItem;
+import com.ecommerce.domain.point.PointHistory;
+import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.point.exception.PointErrorCode;
+import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
-import com.ecommerce.domain.user.exception.UserErrorCode;
-import com.ecommerce.domain.user.exception.UserNotFoundException;
+import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,11 +35,12 @@ import java.util.stream.Collectors;
  * US-ORD-001: 주문 생성
  * 복잡한 비즈니스 트랜잭션:
  * 1. 장바구니 조회 및 검증
- * 2. 재고 차감 (동시성 제어)
+ * 2. 재고 차감 (동시성 제어 - 비관적 락)
  * 3. 쿠폰 적용
- * 4. 잔액 차감 (동시성 제어)
+ * 4. 잔액 차감 (동시성 제어 - 낙관적 락)
  * 5. 주문 생성 및 장바구니 클리어
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class CreateOrderUseCase {
@@ -52,30 +53,37 @@ public class CreateOrderUseCase {
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @Retryable(
+            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 50, multiplier = 2.0)
+    )
     @Transactional
     public OrderResponse execute(Long userId, Long userCouponId) {
+        log.debug("주문 생성 시도: userId={}, userCouponId={}", userId, userCouponId);
         // 1. 장바구니 조회
         List<CartItem> cartItems = validateAndGetCartItems(userId);
 
         // 2. 상품 정보 조회
         Map<Long, Product> productMap = fetchAndValidateProducts(cartItems);
 
-        // 3. 재고 확인 및 차감 (동시성 제어는 Repository에서)
+        // 3. 재고 확인 및 차감
         for (CartItem item : cartItems) {
             Product product = productMap.get(item.getProductId());
             if (!product.hasStock(item.getQuantity())) {
                 throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
             }
+            // 비관적 락 - 동시성 제어
             productRepository.decreaseStock(product.getId(), item.getQuantity());
         }
 
         // 4. 총 금액 계산
         long totalAmount = cartItems.stream()
-            .mapToLong(item -> {
-                Product product = productMap.get(item.getProductId());
-                return product.getPrice() * item.getQuantity();
-            })
-            .sum();
+                .mapToLong(item -> {
+                    Product product = productMap.get(item.getProductId());
+                    return product.getPrice() * item.getQuantity();
+                })
+                .sum();
 
         // 5. 쿠폰 적용 (선택적)
         long discountAmount = 0;
@@ -100,16 +108,14 @@ public class CreateOrderUseCase {
 
         long finalAmount = totalAmount - discountAmount;
 
-        // 6. 사용자 포인트 차감
+        // 6. 사용자 포인트 차감 (낙관적 락)
         User user = userRepository.findByIdOrThrow(userId);
 
         if (!user.hasPoint(finalAmount)) {
-            throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT
-            );
+            throw new InsufficientPointException(PointErrorCode.INSUFFICIENT_POINT);
         }
 
-        // 비관적 락 - 동시성 제어
-        userRepository.usePoint(userId, finalAmount);
+        user.usePoint(finalAmount);
 
         // 7. 주문 생성
         Order order = new Order(null, userId, totalAmount, discountAmount, finalAmount, userCouponId);
@@ -120,12 +126,12 @@ public class CreateOrderUseCase {
         for (CartItem item : cartItems) {
             Product product = productMap.get(item.getProductId());
             OrderItem orderItem = new OrderItem(
-                null,
-                order.getId(),
-                product.getId(),
-                product.getName(),
-                item.getQuantity(),
-                product.getPrice()
+                    null,
+                    order.getId(),
+                    product.getId(),
+                    product.getName(),
+                    item.getQuantity(),
+                    product.getPrice()
             );
             orderItems.add(orderItemRepository.save(orderItem));
         }
@@ -134,16 +140,14 @@ public class CreateOrderUseCase {
         cartRepository.deleteByUserId(userId);
 
         // 10. 포인트 이력 저장
-        User updatedUser = userRepository.findByIdOrThrow(userId);
-
         PointHistory pointHistory = new PointHistory(
-            null,
-            userId,
-            -finalAmount,  // 사용은 음수
-            TransactionType.USE,
-            updatedUser.getPointBalance(),
-            order.getId(),
-            String.format("주문 결제: 주문번호 %d", order.getId())
+                null,
+                userId,
+                -finalAmount,
+                TransactionType.USE,
+                user.getPointBalance(),
+                order.getId(),
+                String.format("주문 결제: 주문번호 %d", order.getId())
         );
         pointHistoryRepository.save(pointHistory);
 
