@@ -55,12 +55,12 @@ public class CreateOrderUseCase {
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @Transactional
     @Retryable(
             retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
             maxAttempts = 3,
             backoff = @Backoff(delay = 50, multiplier = 2.0)
     )
-    @Transactional
     public OrderResponse execute(Long userId, Long userCouponId) {
         log.debug("주문 생성 시도: userId={}, userCouponId={}", userId, userCouponId);
         // 1. 장바구니 조회
