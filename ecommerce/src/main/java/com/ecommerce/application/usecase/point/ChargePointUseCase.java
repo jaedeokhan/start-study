@@ -25,12 +25,12 @@ public class ChargePointUseCase {
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @Transactional
     @Retryable(
             retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 50, multiplier = 2.0)
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 100, multiplier = 1.5)
     )
-    @Transactional
     public ChargePointResponse execute(Long userId, long amount) {
         log.debug("포인트 충전 시도: userId={}, amount={}", userId, amount);
 
