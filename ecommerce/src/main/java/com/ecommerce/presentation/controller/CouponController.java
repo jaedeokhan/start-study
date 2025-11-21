@@ -32,7 +32,7 @@ public class CouponController implements CouponApi {
             Long couponEventId,
             IssueCouponRequest request
     ) {
-        IssueCouponResponse response = issueCouponUseCase.execute(couponEventId, request.getUserId());
+        IssueCouponResponse response = issueCouponUseCase.execute(couponEventId, request.userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 
