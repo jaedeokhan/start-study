@@ -24,8 +24,7 @@ public class ChargePointUseCase {
     @Transactional
     public ChargePointResponse execute(Long userId, long amount) {
         // 1. 사용자 조회
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+        User user = userRepository.findByIdOrThrow(userId);
 
         // 2. 충전 전 포인트 저장
         long previousBalance = user.getPointBalance();
@@ -34,8 +33,7 @@ public class ChargePointUseCase {
         userRepository.chargePoint(userId, amount);
 
         // 4. 충전 후 사용자 정보 재조회
-        User updatedUser = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+        User updatedUser = userRepository.findByIdOrThrow(userId);
 
         // 5. 포인트 이력 저장
         PointHistory pointHistory = new PointHistory(

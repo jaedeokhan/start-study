@@ -17,7 +17,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.id = :id")
     Optional<User> findByIdWithLock(@Param("id") Long id);
 
-    Optional<User> findById(Long id);
+    default User findByIdOrThrow(Long id) {
+        return findById(id).orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+    }
 
     default void chargePoint(Long userId, long amount) {
         User user = findByIdWithLock(userId)
