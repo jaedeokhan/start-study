@@ -14,6 +14,7 @@ import com.ecommerce.domain.point.exception.PointErrorCode;
 import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
+import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -64,20 +66,18 @@ public class CreateOrderUseCase {
         // 1. 장바구니 조회
         List<CartItem> cartItems = validateAndGetCartItems(userId);
 
-        // 2. 상품 정보 조회
-        Map<Long, Product> productMap = fetchAndValidateProducts(cartItems);
-
-        // 3. 재고 확인 및 차감
+        // 2. 재고 차감 (비관적 락으로 동시성 제어)
+        Map<Long, Product> productMap = new HashMap<>();
         for (CartItem item : cartItems) {
-            Product product = productMap.get(item.getProductId());
-            if (!product.hasStock(item.getQuantity())) {
-                throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
-            }
-            // 비관적 락 - 동시성 제어
-            productRepository.decreaseStock(product.getId(), item.getQuantity());
+            Product product = productRepository.findByIdWithLock(item.getProductId())
+                    .orElseThrow(() -> new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND));
+
+            product.decreaseStock(item.getQuantity());
+
+            productMap.put(product.getId(), product);
         }
 
-        // 4. 총 금액 계산
+        // 3. 총 금액 계산
         long totalAmount = cartItems.stream()
                 .mapToLong(item -> {
                     Product product = productMap.get(item.getProductId());
@@ -161,26 +161,6 @@ public class CreateOrderUseCase {
             throw new EmptyCartException(CartErrorCode.EMPTY_CART);
         }
         return cartItems;
-    }
-
-    private Map<Long, Product> fetchAndValidateProducts(List<CartItem> cartItems) {
-        List<Long> productIds = cartItems.stream()
-                .map(CartItem::getProductId)
-                .collect(Collectors.toList());
-
-        List<Product> products = productRepository.findAllById(productIds);
-        Map<Long, Product> productMap = products.stream()
-                .collect(Collectors.toMap(Product::getId, product -> product));
-
-        // 재고 검증
-        for (CartItem item : cartItems) {
-            Product product = productMap.get(item.getProductId());
-            if (!product.hasStock(item.getQuantity())) {
-                throw new InsufficientStockException(ProductErrorCode.INSUFFICIENT_STOCK);
-            }
-        }
-
-        return productMap;
     }
 
     private long calculateDiscount(CouponEvent couponEvent, long totalAmount) {
