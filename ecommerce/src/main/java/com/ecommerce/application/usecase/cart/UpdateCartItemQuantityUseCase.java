@@ -30,8 +30,7 @@ public class UpdateCartItemQuantityUseCase {
             .orElseThrow(() -> new CartItemNotFoundException(CartErrorCode.CART_ITEM_NOT_FOUND));
 
         // 2. 상품 조회
-        Product product = productRepository.findById(cartItem.getProductId())
-            .orElseThrow(() -> new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND));
+        Product product = productRepository.findByIdOrThrow(cartItem.getProductId());
 
         // 3. 재고 확인
         if (!product.hasStock(quantity)) {
