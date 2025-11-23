@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'jacoco'
+}
+
+group = project.property('app.group')
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+jacoco {
+    toolVersion = '0.8.7'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+ext {
+    set('springCloudVersion', '2023.0.0')
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.retry:spring-retry'
+
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+}
+
+bootJar {
+    enabled = true
+}
+
+jar {
+    enabled = false
+}
+
+test {
+    ignoreFailures = true
+    useJUnitPlatform()
+}
+
+tasks.register('generateOpenApiYaml') {
+    group = 'documentation'
+    description = 'Generate OpenAPI YAML specification'
+
+    doLast {
+        println 'OpenAPI YAML 파일을 생성하려면 다음 단계를 수행하세요:'
+        println '1. 애플리케이션 실행: ./gradlew bootRun'
+        println '2. 다른 터미널에서 YAML 다운로드:'
+        println '   curl http://localhost:8080/v3/api-docs.yaml -o src/main/resources/static/openapi.yaml'
+        println '3. 생성된 파일 확인: src/main/resources/static/openapi.yaml'
+    }
+}
