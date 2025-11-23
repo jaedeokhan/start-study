@@ -1,13 +1,17 @@
 package com.ecommerce.infrastructure.repository;
 
 import com.ecommerce.domain.coupon.UserCoupon;
+import com.ecommerce.domain.coupon.exception.CouponErrorCode;
+import com.ecommerce.domain.coupon.exception.CouponNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface UserCouponRepository extends JpaRepository<UserCoupon, Long>  {
-    Optional<UserCoupon> findById(Long id);
+
+    default UserCoupon findByIdOrThrow(Long id) {
+        return findById(id).orElseThrow(() -> new CouponNotFoundException(CouponErrorCode.COUPON_NOT_FOUND));
+    }
 
     List<UserCoupon> findByUserId(Long userId);
 

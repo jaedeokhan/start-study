@@ -4,17 +4,21 @@ import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.presentation.dto.point.ChargePointResponse;
-import com.ecommerce.domain.user.exception.UserErrorCode;
-import com.ecommerce.domain.user.exception.UserNotFoundException;
 import com.ecommerce.infrastructure.repository.PointHistoryRepository;
 import com.ecommerce.infrastructure.repository.UserRepository;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * US-PAY-002: 포인트 충전
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChargePointUseCase {
@@ -22,33 +26,35 @@ public class ChargePointUseCase {
     private final PointHistoryRepository pointHistoryRepository;
 
     @Transactional
+    @Retryable(
+            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 100, multiplier = 1.5)
+    )
     public ChargePointResponse execute(Long userId, long amount) {
-        // 1. 사용자 조회
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
+        log.debug("포인트 충전 시도: userId={}, amount={}", userId, amount);
+
+        // 1. 사용자 조회 (낙관적 락)
+        User user = userRepository.findByIdOrThrow(userId);
 
         // 2. 충전 전 포인트 저장
         long previousBalance = user.getPointBalance();
 
-        // 3. 포인트 충전 (비관적 락)
-        userRepository.chargePoint(userId, amount);
+        // 3. 포인트 충전
+        user.chargePoint(amount);
 
-        // 4. 충전 후 사용자 정보 재조회
-        User updatedUser = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(UserErrorCode.USER_NOT_FOUND));
-
-        // 5. 포인트 이력 저장
+        // 4. 포인트 이력 저장
         PointHistory pointHistory = new PointHistory(
-            null,
-            userId,
-            amount,
-            TransactionType.CHARGE,
-            updatedUser.getPointBalance(),
-            String.format("포인트 충전: %d원", amount)
+                null,
+                userId,
+                amount,
+                TransactionType.CHARGE,
+                user.getPointBalance(),
+                String.format("포인트 충전: %d원", amount)
         );
         pointHistoryRepository.save(pointHistory);
 
-        // 6. 응답 생성
-        return ChargePointResponse.from(updatedUser, previousBalance, amount);
+        // 5. 응답 생성
+        return ChargePointResponse.from(user, previousBalance, amount);
     }
 }

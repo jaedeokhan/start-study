@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.springdoc.openapi)
     implementation(libs.spring.boot.starter.data.jpa)
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.retry:spring-retry")
     runtimeOnly("com.mysql:mysql-connector-j")
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)

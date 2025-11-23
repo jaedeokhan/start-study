@@ -18,7 +18,9 @@ public interface CouponEventRepository extends JpaRepository<CouponEvent, Long> 
     @Query("SELECT c FROM CouponEvent c WHERE c.id = :id")
     Optional<CouponEvent> findByIdWithLock(@Param("id") Long id);
 
-    Optional<CouponEvent> findById(Long id);
+    default CouponEvent findByIdOrThrow(Long id) {
+        return findById(id).orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
+    }
 
     List<CouponEvent> findAll();
 
