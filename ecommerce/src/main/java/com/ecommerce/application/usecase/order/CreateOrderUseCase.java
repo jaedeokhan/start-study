@@ -1,5 +1,6 @@
 package com.ecommerce.application.usecase.order;
 
+import com.ecommerce.application.lock.MultiDistributedLock;
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.domain.cart.exception.CartErrorCode;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
@@ -55,12 +56,8 @@ public class CreateOrderUseCase {
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @MultiDistributedLock(keyProvider = "getOrderLockKeys(#userId)")
     @Transactional
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 50, multiplier = 2.0)
-    )
     public OrderResponse execute(Long userId, Long userCouponId) {
         log.debug("주문 생성 시도: userId={}, userCouponId={}", userId, userCouponId);
         // 1. 장바구니 조회
@@ -69,7 +66,7 @@ public class CreateOrderUseCase {
         // 2. 재고 차감 (비관적 락으로 동시성 제어)
         Map<Long, Product> productMap = new HashMap<>();
         for (CartItem item : cartItems) {
-            Product product = productRepository.findByIdWithLock(item.getProductId())
+            Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new ProductNotFoundException(ProductErrorCode.PRODUCT_NOT_FOUND));
 
             product.decreaseStock(item.getQuantity());
@@ -171,5 +168,23 @@ public class CreateOrderUseCase {
                     couponEvent.getMaxDiscountAmount()
             );
         };
+    }
+
+    /**
+     * 락 키 생성 메서드 (LockKeyProvider)
+     */
+    public List<String> getOrderLockKeys(Long userId) {
+        List<String> keys = new ArrayList<>();
+
+        // 장바구니 조회하여 상품별 재고 락
+        List<CartItem> cartItems = cartRepository.findByUserId(userId);
+        for (CartItem item : cartItems) {
+            keys.add("product:stock:" + item.getProductId());
+        }
+
+        // 포인트 락
+        keys.add("point:user:" + userId);
+
+        return keys;
     }
 }

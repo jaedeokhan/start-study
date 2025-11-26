@@ -65,7 +65,7 @@ public class DistributedLockAspect {
                     Thread.currentThread().getId(),
                     e
             );
-            throw new LockAcquisitionException("락 획득 시 인터럽트 실패 : " + lockKey);
+            throw new LockAcquisitionException("락 획득 시 인터럽트 실패 : " + lockKey, e);
         } finally {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
