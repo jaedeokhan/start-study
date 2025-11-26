@@ -1,5 +1,7 @@
 package com.ecommerce.application.usecase.point;
 
+import com.ecommerce.application.lock.DistributedLock;
+import com.ecommerce.application.lock.LockType;
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.user.User;
@@ -25,12 +27,8 @@ public class ChargePointUseCase {
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @DistributedLock(key = "'user:charge:' + #userId", type = LockType.PUB_SUB)
     @Transactional
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 10,
-            backoff = @Backoff(delay = 100, multiplier = 1.5)
-    )
     public ChargePointResponse execute(Long userId, long amount) {
         log.debug("포인트 충전 시도: userId={}, amount={}", userId, amount);
 
