@@ -26,7 +26,7 @@ public class IssueCouponUseCase {
     private final CouponEventRepository couponEventRepository;
     private final UserCouponRepository userCouponRepository;
 
-    @DistributedLock(key = "'coupon:' + #couponEventId", type = LockType.PUB_SUB)
+    @DistributedLock(key = "'coupon:issue' + #couponEventId", type = LockType.PUB_SUB)
     @Transactional
     public IssueCouponResponse execute(Long couponEventId, Long userId) {
         // 1. 쿠폰 이벤트 조회

@@ -1,6 +1,7 @@
 package com.ecommerce.application.lock;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 @Aspect
 @Component
 @Order(0)
+@Slf4j
 @RequiredArgsConstructor
 public class DistributedLockAspect {
 
@@ -40,12 +42,29 @@ public class DistributedLockAspect {
             );
 
             if (!acquired) {
+                log.warn(
+                    "[FAIL] Acquire lock. key={}, threadId={}",
+                    lockKey,
+                    Thread.currentThread().getId()
+                );
                 throw new LockAcquisitionException("락 획득 시 타임아웃 실패 : " + lockKey);
             }
+
+            log.info(
+                "[SUCCESS] Acquired lock. key={}, threadId={}",
+                lockKey,
+                Thread.currentThread().getId()
+            );
 
             return joinPoint.proceed();
         } catch (Throwable e) {
             Thread.currentThread().interrupt();
+            log.error(
+                    "[FAIL] Lock acquisition interrupted key={}, threadId={}",
+                    lockKey,
+                    Thread.currentThread().getId(),
+                    e
+            );
             throw new LockAcquisitionException("락 획득 시 인터럽트 실패 : " + lockKey);
         } finally {
             if (lock.isHeldByCurrentThread()) {
