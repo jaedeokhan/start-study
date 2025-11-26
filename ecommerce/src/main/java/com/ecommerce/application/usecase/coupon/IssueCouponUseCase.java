@@ -1,5 +1,7 @@
 package com.ecommerce.application.usecase.coupon;
 
+import com.ecommerce.application.lock.DistributedLock;
+import com.ecommerce.application.lock.LockType;
 import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.UserCoupon;
 import com.ecommerce.presentation.dto.coupon.IssueCouponResponse;
@@ -24,17 +26,18 @@ public class IssueCouponUseCase {
     private final CouponEventRepository couponEventRepository;
     private final UserCouponRepository userCouponRepository;
 
+    @DistributedLock(key = "'coupon' + #couponEventId", type = LockType.PUB_SUB)
     @Transactional
     public IssueCouponResponse execute(Long couponEventId, Long userId) {
+        // 1. 쿠폰 이벤트 조회
+        CouponEvent couponEvent = couponEventRepository.findById(couponEventId)
+            .orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
 
-        // 1. 중복 발급 체크
+        // 2. 중복 발급 체크
         if (userCouponRepository.existsByUserIdAndCouponEventId(userId, couponEventId)) {
             throw new CouponAlreadyIssuedException(CouponErrorCode.COUPON_ALREADY_ISSUED);
         }
 
-        // 2. 쿠폰 이벤트 조회
-        CouponEvent couponEvent = couponEventRepository.findByIdWithLock(couponEventId)
-            .orElseThrow(() -> new CouponEventNotFoundException(CouponErrorCode.COUPON_EVENT_NOT_FOUND));
 
         // 3. 쿠폰 발급 가능 여부 검증 (Entity 비즈니스 로직)
         LocalDateTime now = LocalDateTime.now();
@@ -44,7 +47,6 @@ public class IssueCouponUseCase {
 
         // 4. 쿠폰 발급
         couponEvent.issue();
-
 
         // 5. 사용자 쿠폰 생성
         UserCoupon userCoupon = new UserCoupon(
