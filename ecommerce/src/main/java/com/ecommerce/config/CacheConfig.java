@@ -1,5 +1,6 @@
 package com.ecommerce.config;
 
+import com.ecommerce.presentation.dto.coupon.CouponEventListResponse;
 import com.ecommerce.presentation.dto.product.PopularProductResponse;
 import com.ecommerce.presentation.dto.product.ProductResponse;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -30,6 +31,7 @@ public class CacheConfig {
     private static final String CACHE_PREFIX = "ecommerce:cache:";
     private static final String POPULAR_PRODUCTS_CACHE = "product:popular";
     private static final String PRODUCT_DETAIL_CACHE = "product:detail";
+    private static final String COUPON_EVENTS_CACHE = "coupon:event";
 
     @Bean
     public ObjectMapper objectMapper() {
@@ -61,6 +63,11 @@ public class CacheConfig {
         cacheConfigurations.put(PRODUCT_DETAIL_CACHE,
                 createCacheConfig(objectMapper, ProductResponse.class)
                         .entryTtl(Duration.ofMinutes(30)));
+
+        // 쿠폰 이벤트 목록
+        cacheConfigurations.put(COUPON_EVENTS_CACHE,
+                createCacheConfig(objectMapper, CouponEventListResponse.class)
+                        .entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
