@@ -4,6 +4,7 @@ import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.presentation.dto.coupon.CouponEventListResponse;
 import com.ecommerce.infrastructure.repository.CouponEventRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class GetCouponEventsUseCase {
     private final CouponEventRepository couponEventRepository;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "coupon:event")
     public CouponEventListResponse execute() {
         // 1. 모든 쿠폰 이벤트 조회
         List<CouponEvent> allEvents = couponEventRepository.findAll();

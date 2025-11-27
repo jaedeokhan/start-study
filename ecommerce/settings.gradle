@@ -6,10 +6,10 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    @Suppress("UnstableApiUsage")
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         mavenCentral()
     }
 }
 
-rootProject.name = "ecommerce"
+rootProject.name = 'ecommerce'

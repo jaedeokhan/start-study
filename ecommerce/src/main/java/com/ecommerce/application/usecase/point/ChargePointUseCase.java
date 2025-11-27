@@ -1,17 +1,15 @@
 package com.ecommerce.application.usecase.point;
 
+import com.ecommerce.application.lock.DistributedLock;
+import com.ecommerce.application.lock.constant.LockType;
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.presentation.dto.point.ChargePointResponse;
 import com.ecommerce.infrastructure.repository.PointHistoryRepository;
 import com.ecommerce.infrastructure.repository.UserRepository;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +23,8 @@ public class ChargePointUseCase {
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
+    @DistributedLock(key = "'point:charge:' + #userId", type = LockType.PUB_SUB)
     @Transactional
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 10,
-            backoff = @Backoff(delay = 100, multiplier = 1.5)
-    )
     public ChargePointResponse execute(Long userId, long amount) {
         log.debug("포인트 충전 시도: userId={}, amount={}", userId, amount);
 

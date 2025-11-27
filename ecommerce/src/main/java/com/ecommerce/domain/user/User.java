@@ -24,10 +24,6 @@ public class User extends BaseTimeEntity {
     @Column(name = "point_balance", nullable = false)
     private long pointBalance;
 
-    @Version
-    @Column(name = "version")
-    private Long version;
-
     public User(Long id, String name, long pointBalance) {
         validatePointBalance(pointBalance);
 
