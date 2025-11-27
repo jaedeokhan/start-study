@@ -8,6 +8,7 @@ import com.ecommerce.presentation.dto.product.PopularProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ public class GetPopularProductsUseCase {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
 
+    @Transactional(readOnly = true)
     @Cacheable(value = "product:popular")
     public PopularProductResponse execute() {
         // 1. 기준 시점 계산
