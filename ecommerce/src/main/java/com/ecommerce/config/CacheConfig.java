@@ -1,6 +1,7 @@
 package com.ecommerce.config;
 
 import com.ecommerce.presentation.dto.product.PopularProductResponse;
+import com.ecommerce.presentation.dto.product.ProductResponse;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,11 +29,26 @@ public class CacheConfig {
 
     private static final String CACHE_PREFIX = "ecommerce:cache:";
     private static final String POPULAR_PRODUCTS_CACHE = "product:popular";
+    private static final String PRODUCT_DETAIL_CACHE = "product:detail";
 
     @Bean
-    public CacheManager cacheManager(
-            RedisConnectionFactory connectionFactory,
-            ObjectMapper objectMapper) {
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        // record
+        mapper.registerModule(new com.fasterxml.jackson.module.paramnames.ParameterNamesModule());
+        return mapper;
+    }
+
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
+                .entryTtl(Duration.ofHours(10))
+                .computePrefixWith(cacheName -> CACHE_PREFIX + cacheName)
+                .disableCachingNullValues();
 
         Map<String, RedisCacheConfiguration> cacheConfigurations = new HashMap<>();
 
@@ -41,24 +57,10 @@ public class CacheConfig {
                 createCacheConfig(objectMapper, PopularProductResponse.class)
                         .entryTtl(Duration.ofMinutes(10)));
 
-        // product: 단일 상품
-//        cacheConfigurations.put("product",
-//                createCacheConfig(objectMapper, ProductDetailDto.class)
-//                        .entryTtl(Duration.ofHours(1)));
-
-        // 기본 설정
-        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration
-                .defaultCacheConfig()
-                .serializeKeysWith(
-                        RedisSerializationContext.SerializationPair
-                                .fromSerializer(new StringRedisSerializer())
-                )
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair
-                                .fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper))
-                )
-                .computePrefixWith(cacheName -> CACHE_PREFIX + cacheName)
-                .disableCachingNullValues();
+        // 단일 상품 상세
+        cacheConfigurations.put(PRODUCT_DETAIL_CACHE,
+                createCacheConfig(objectMapper, ProductResponse.class)
+                        .entryTtl(Duration.ofMinutes(30)));
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
@@ -66,8 +68,7 @@ public class CacheConfig {
                 .build();
     }
 
-    private <T> RedisCacheConfiguration createCacheConfig(
-            ObjectMapper objectMapper, Class<T> type) {
+    private <T> RedisCacheConfiguration createCacheConfig(ObjectMapper objectMapper, Class<T> type) {
 
         Jackson2JsonRedisSerializer<T> serializer =
                 new Jackson2JsonRedisSerializer<>(objectMapper, type);
@@ -82,16 +83,5 @@ public class CacheConfig {
                                 .fromSerializer(serializer)
                 )
                 .disableCachingNullValues();
-    }
-
-    @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule());
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        // record
-        mapper.registerModule(new com.fasterxml.jackson.module.paramnames.ParameterNamesModule());
-        return mapper;
     }
 }
