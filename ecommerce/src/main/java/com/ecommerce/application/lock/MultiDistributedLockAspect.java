@@ -1,5 +1,7 @@
 package com.ecommerce.application.lock;
 
+import com.ecommerce.application.lock.constant.LockConstants;
+import com.ecommerce.application.lock.exception.LockAcquisitionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -15,8 +17,6 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +29,7 @@ public class MultiDistributedLockAspect {
 
     private final RedissonClient redissonClient;
     private final ExpressionParser parser = new SpelExpressionParser();
-    private static final String LOCK_PREFIX = "ecommerce:lock:";
+    private static final String LOCK_PREFIX = LockConstants.LOCK_PREFIX;
 
     @Around("@annotation(multiDistributedLock)")
     public Object lock(ProceedingJoinPoint joinPoint, MultiDistributedLock multiDistributedLock)
@@ -69,10 +69,7 @@ public class MultiDistributedLockAspect {
             return keys;
         }
 
-        throw new IllegalArgumentException(
-                "keyProvider는 LockKeyProvider 또는 List<String>을 반환해야 합니다: "
-                        + lockConfig.keyProvider()
-        );
+        throw new IllegalArgumentException("keyProvider는 List<String>을 반환해야 합니다: " + lockConfig.keyProvider());
     }
 
     /**
@@ -101,12 +98,6 @@ public class MultiDistributedLockAspect {
             List<String> lockKeys,
             MultiDistributedLock config
     ) throws Throwable {
-
-        if (lockKeys == null || lockKeys.isEmpty()) {
-            log.warn("락 키 목록이 비어있음 - 락 없이 작업 실행");
-            return joinPoint.proceed();
-        }
-
         // MultiLock 생성
         RLock[] locks = lockKeys.stream()
                 .map(key -> redissonClient.getLock(LOCK_PREFIX + key))

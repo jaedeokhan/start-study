@@ -1,5 +1,7 @@
 package com.ecommerce.application.lock;
 
+import com.ecommerce.application.lock.constant.LockConstants;
+import com.ecommerce.application.lock.exception.LockAcquisitionException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -26,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 public class DistributedLockAspect {
 
     private final RedissonClient redissonClient;
-    private static final String LOCK_PREFIX = "ecommerce:lock:";
+    private static final String LOCK_PREFIX = LockConstants.LOCK_PREFIX;
 
     @Around("@annotation(distributedLock)")
     public Object lock(ProceedingJoinPoint joinPoint, DistributedLock distributedLock) {

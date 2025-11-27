@@ -1,4 +1,4 @@
-package com.ecommerce.application.lock;
+package com.ecommerce.application.lock.constant;
 
 public enum LockType {
     SIMPLE, SPIN, PUB_SUB

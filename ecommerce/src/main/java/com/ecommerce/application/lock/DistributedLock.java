@@ -1,5 +1,7 @@
 package com.ecommerce.application.lock;
 
+import com.ecommerce.application.lock.constant.LockType;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

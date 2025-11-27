@@ -1,7 +1,7 @@
 package com.ecommerce.application.usecase.coupon;
 
 import com.ecommerce.application.lock.DistributedLock;
-import com.ecommerce.application.lock.LockType;
+import com.ecommerce.application.lock.constant.LockType;
 import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.UserCoupon;
 import com.ecommerce.presentation.dto.coupon.IssueCouponResponse;

@@ -1,19 +1,15 @@
 package com.ecommerce.application.usecase.point;
 
 import com.ecommerce.application.lock.DistributedLock;
-import com.ecommerce.application.lock.LockType;
+import com.ecommerce.application.lock.constant.LockType;
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.presentation.dto.point.ChargePointResponse;
 import com.ecommerce.infrastructure.repository.PointHistoryRepository;
 import com.ecommerce.infrastructure.repository.UserRepository;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 

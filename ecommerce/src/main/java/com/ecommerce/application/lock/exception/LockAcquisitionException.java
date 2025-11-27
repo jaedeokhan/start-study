@@ -1,4 +1,4 @@
-package com.ecommerce.application.lock;
+package com.ecommerce.application.lock.exception;
 
 public class LockAcquisitionException extends RuntimeException {
 
