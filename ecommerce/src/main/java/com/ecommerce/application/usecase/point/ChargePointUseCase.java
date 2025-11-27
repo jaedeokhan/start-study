@@ -23,7 +23,7 @@ public class ChargePointUseCase {
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
 
-    @DistributedLock(key = "'user:charge:' + #userId", type = LockType.PUB_SUB)
+    @DistributedLock(key = "'point:charge:' + #userId", type = LockType.PUB_SUB)
     @Transactional
     public ChargePointResponse execute(Long userId, long amount) {
         log.debug("포인트 충전 시도: userId={}, amount={}", userId, amount);

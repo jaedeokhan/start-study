@@ -183,7 +183,7 @@ public class CreateOrderUseCase {
         }
 
         // 포인트 락
-        keys.add("point:user:" + userId);
+        keys.add("point:use:" + userId);
 
         return keys;
     }
