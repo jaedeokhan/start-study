@@ -3,13 +3,15 @@ package com.ecommerce.application.usecase.product;
 import com.ecommerce.domain.product.Product;
 import com.ecommerce.infrastructure.repository.OrderItemRepository;
 import com.ecommerce.infrastructure.repository.OrderItemRepository.ProductSalesProjection;
-import com.ecommerce.presentation.dto.product.PopularProductResponse;
 import com.ecommerce.infrastructure.repository.ProductRepository;
+import com.ecommerce.presentation.dto.product.PopularProductResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -21,6 +23,7 @@ public class GetPopularProductsUseCase {
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
 
+    @Cacheable(value = "product:popular")
     public PopularProductResponse execute() {
         // 1. 기준 시점 계산
         LocalDateTime threeDaysAgo = LocalDateTime.now().minusDays(3);
