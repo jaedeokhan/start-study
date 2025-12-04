@@ -39,6 +39,7 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.redisson:redisson-spring-boot-starter:3.37.0'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 
     runtimeOnly 'com.mysql:mysql-connector-j'
 

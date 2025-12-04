@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -26,7 +25,7 @@ import java.util.Map;
 
 @Configuration
 @EnableCaching
-public class CacheConfig {
+public class RedisCacheConfig {
 
     private static final String CACHE_PREFIX = "ecommerce:cache:";
     private static final String POPULAR_PRODUCTS_CACHE = "product:popular";
