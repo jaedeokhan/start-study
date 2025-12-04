@@ -17,6 +17,7 @@ import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.user.User;
+import com.ecommerce.infrastructure.redis.ProductRankingRepository;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import jakarta.persistence.OptimisticLockException;
@@ -27,6 +28,8 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,6 +58,7 @@ public class CreateOrderUseCase {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
+    private final ProductRankingRepository productRankingRepository;
 
     @MultiDistributedLock(keyProvider = "getOrderLockKeys(#userId)")
     @Transactional
@@ -149,7 +153,33 @@ public class CreateOrderUseCase {
         pointHistoryRepository.save(pointHistory);
 
         // 11. 응답 생성
-        return OrderResponse.from(order, orderItems);
+        OrderResponse response = OrderResponse.from(order, orderItems);
+
+        // 12. 트랜잭션 커밋 후 Redis 랭킹 업데이트
+        long currentOrderId = order.getId();
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        try {
+                            Map<Long, Integer> productQuantities = orderItems.stream()
+                                    .collect(java.util.stream.Collectors.toMap(
+                                            OrderItem::getProductId,
+                                            OrderItem::getQuantity,
+                                            Integer::sum  // 같은 상품이 여러 번 있으면 합산
+                                    ));
+                            // Redis 일간 랭킹 업데이트
+                            productRankingRepository.incrementTodayRanking(productQuantities);
+
+                        } catch (Exception e) {
+                            // 랭킹 업데이트 실패는 주문에 영향을 주지 않음
+                            log.error("랭킹 업데이트 실패 - orderId: {}", currentOrderId, e);
+                        }
+                    }
+                }
+        );
+
+        return response;
     }
 
     private List<CartItem> validateAndGetCartItems(Long userId) {
