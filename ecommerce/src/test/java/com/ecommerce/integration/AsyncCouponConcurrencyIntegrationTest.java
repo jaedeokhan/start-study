@@ -87,7 +87,7 @@ class AsyncCouponConcurrencyIntegrationTest extends TestContainerConfig {
                     Map<String, Object> request = new HashMap<>();
                     request.put("userId", userId);
 
-                    mockMvc.perform(post("/api/v1/coupons/{couponEventId}/issue", couponEvent.getId())
+                    mockMvc.perform(post("/api/v1/coupons/{couponEventId}/asyncIssue", couponEvent.getId())
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
                             .andExpect(status().isCreated());
@@ -167,7 +167,7 @@ class AsyncCouponConcurrencyIntegrationTest extends TestContainerConfig {
                     Map<String, Object> request = new HashMap<>();
                     request.put("userId", userId);
 
-                    mockMvc.perform(post("/api/v1/coupons/{couponEventId}/issue", couponEvent.getId())
+                    mockMvc.perform(post("/api/v1/coupons/{couponEventId}/asyncIssue", couponEvent.getId())
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(objectMapper.writeValueAsString(request)))
                             .andExpect(status().isCreated());

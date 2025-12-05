@@ -24,11 +24,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CouponController implements CouponApi {
     private final GetCouponEventsUseCase getCouponEventsUseCase;
+    private final IssueCouponUseCase issueCouponUseCase;
     private final AsyncIssueCouponUseCase asyncIssueCouponUseCase;
     private final GetUserCouponsUseCase getUserCouponsUseCase;
 
     @Override
     public ResponseEntity<ApiResponse<IssueCouponResponse>> issueCoupon(
+            Long couponEventId,
+            IssueCouponRequest request
+    ) {
+        IssueCouponResponse response = issueCouponUseCase.execute(couponEventId, request.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<IssueCouponResponse>> asyncIssueCoupon(
             Long couponEventId,
             IssueCouponRequest request
     ) {
