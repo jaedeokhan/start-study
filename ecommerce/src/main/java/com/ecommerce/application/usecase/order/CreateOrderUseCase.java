@@ -13,23 +13,16 @@ import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.point.exception.PointErrorCode;
 import com.ecommerce.domain.product.Product;
-import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.redis.ProductRankingRepository;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,7 +60,7 @@ public class CreateOrderUseCase {
         // 1. 장바구니 조회
         List<CartItem> cartItems = validateAndGetCartItems(userId);
 
-        // 2. 재고 차감 (비관적 락으로 동시성 제어)
+        // 2. 재고 차감
         Map<Long, Product> productMap = new HashMap<>();
         for (CartItem item : cartItems) {
             Product product = productRepository.findById(item.getProductId())
@@ -109,7 +102,7 @@ public class CreateOrderUseCase {
 
         long finalAmount = totalAmount - discountAmount;
 
-        // 6. 사용자 포인트 차감 (낙관적 락)
+        // 6. 사용자 포인트 차감
         User user = userRepository.findByIdOrThrow(userId);
 
         if (!user.hasPoint(finalAmount)) {
@@ -155,29 +148,8 @@ public class CreateOrderUseCase {
         // 11. 응답 생성
         OrderResponse response = OrderResponse.from(order, orderItems);
 
-        // 12. 트랜잭션 커밋 후 Redis 랭킹 업데이트
-        long currentOrderId = order.getId();
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        try {
-                            Map<Long, Integer> productQuantities = orderItems.stream()
-                                    .collect(java.util.stream.Collectors.toMap(
-                                            OrderItem::getProductId,
-                                            OrderItem::getQuantity,
-                                            Integer::sum  // 같은 상품이 여러 번 있으면 합산
-                                    ));
-                            // Redis 일간 랭킹 업데이트
-                            productRankingRepository.incrementTodayRanking(productQuantities);
-
-                        } catch (Exception e) {
-                            // 랭킹 업데이트 실패는 주문에 영향을 주지 않음
-                            log.error("랭킹 업데이트 실패 - orderId: {}", currentOrderId, e);
-                        }
-                    }
-                }
-        );
+        // 12. @Async, 트랜잭션 NEW - Redis 랭킹 업데이트
+        updateRanking(order.getId(), orderItems);
 
         return response;
     }
@@ -216,5 +188,22 @@ public class CreateOrderUseCase {
         keys.add("point:use:" + userId);
 
         return keys;
+    }
+
+//    @Async
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateRanking(Long orderId, List<OrderItem> orderItems) {
+        Map<Long, Integer> productQuantities = orderItems.stream()
+                .collect(Collectors.toMap(
+                        OrderItem::getProductId,
+                        OrderItem::getQuantity,
+                        Integer::sum  // 같은 상품이 여러 번 있으면 합산
+                ));
+
+        try {
+            productRankingRepository.incrementTodayRanking(productQuantities);
+        } catch (Exception e) {
+            log.error("랭킹 업데이트 실패 - orderId: {}", orderId, e);
+        }
     }
 }
