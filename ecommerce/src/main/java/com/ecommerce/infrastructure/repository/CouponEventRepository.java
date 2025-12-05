@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +27,7 @@ public interface CouponEventRepository extends JpaRepository<CouponEvent, Long> 
 
     CouponEvent save(CouponEvent couponEvent);
 
+    @Query("SELECT ce FROM CouponEvent ce " +
+            "WHERE ce.startDate <= :now AND ce.endDate >= :now")
+    List<CouponEvent> findActiveEvents(@Param("now") LocalDateTime now);
 }
