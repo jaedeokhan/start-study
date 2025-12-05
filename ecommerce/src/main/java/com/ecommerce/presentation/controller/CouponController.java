@@ -1,5 +1,6 @@
 package com.ecommerce.presentation.controller;
 
+import com.ecommerce.application.usecase.coupon.AsyncIssueCouponUseCase;
 import com.ecommerce.application.usecase.coupon.GetCouponEventsUseCase;
 import com.ecommerce.application.usecase.coupon.GetUserCouponsUseCase;
 import com.ecommerce.application.usecase.coupon.IssueCouponUseCase;
@@ -22,9 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class CouponController implements CouponApi {
-    // ✅ UseCase 주입
     private final GetCouponEventsUseCase getCouponEventsUseCase;
-    private final IssueCouponUseCase issueCouponUseCase;
+    private final AsyncIssueCouponUseCase asyncIssueCouponUseCase;
     private final GetUserCouponsUseCase getUserCouponsUseCase;
 
     @Override
@@ -32,7 +32,7 @@ public class CouponController implements CouponApi {
             Long couponEventId,
             IssueCouponRequest request
     ) {
-        IssueCouponResponse response = issueCouponUseCase.execute(couponEventId, request.userId());
+        IssueCouponResponse response = asyncIssueCouponUseCase.execute(couponEventId, request.userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(response));
     }
 
