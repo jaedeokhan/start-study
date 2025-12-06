@@ -39,6 +39,7 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.redisson:redisson-spring-boot-starter:3.37.0'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 
     runtimeOnly 'com.mysql:mysql-connector-j'
 
@@ -51,6 +52,9 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
     testImplementation 'com.redis:testcontainers-redis:2.0.1'
+
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 bootJar {
