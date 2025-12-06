@@ -1,6 +1,7 @@
 package com.ecommerce.application.usecase.order;
 
 import com.ecommerce.application.lock.MultiDistributedLock;
+import com.ecommerce.application.usecase.order.service.RankingUpdateService;
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.domain.cart.exception.CartErrorCode;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
@@ -16,7 +17,6 @@ import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.user.User;
-import com.ecommerce.infrastructure.redis.ProductRankingRepository;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * US-ORD-001: 주문 생성
@@ -51,7 +50,7 @@ public class CreateOrderUseCase {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
-    private final ProductRankingRepository productRankingRepository;
+    private final RankingUpdateService rankingUpdateService;
 
     @MultiDistributedLock(keyProvider = "getOrderLockKeys(#userId)")
     @Transactional
@@ -149,7 +148,7 @@ public class CreateOrderUseCase {
         OrderResponse response = OrderResponse.from(order, orderItems);
 
         // 12. @Async, 트랜잭션 NEW - Redis 랭킹 업데이트
-        updateRanking(order.getId(), orderItems);
+        rankingUpdateService.updateRanking(order.getId(), orderItems);
 
         return response;
     }
@@ -188,22 +187,5 @@ public class CreateOrderUseCase {
         keys.add("point:use:" + userId);
 
         return keys;
-    }
-
-//    @Async
-//    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateRanking(Long orderId, List<OrderItem> orderItems) {
-        Map<Long, Integer> productQuantities = orderItems.stream()
-                .collect(Collectors.toMap(
-                        OrderItem::getProductId,
-                        OrderItem::getQuantity,
-                        Integer::sum  // 같은 상품이 여러 번 있으면 합산
-                ));
-
-        try {
-            productRankingRepository.incrementTodayRanking(productQuantities);
-        } catch (Exception e) {
-            log.error("랭킹 업데이트 실패 - orderId: {}", orderId, e);
-        }
     }
 }
