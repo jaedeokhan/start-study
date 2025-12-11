@@ -21,7 +21,6 @@ public class RankingUpdateService {
     private final ProductRankingRepository productRankingRepository;
 
     @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateRanking(Long orderId, List<OrderItem> orderItems) {
         Map<Long, Integer> productQuantities = orderItems.stream()
                 .collect(Collectors.toMap(
