@@ -1,6 +1,7 @@
 package com.ecommerce.application.usecase.order;
 
 import com.ecommerce.application.lock.MultiDistributedLock;
+import com.ecommerce.application.usecase.order.service.RankingUpdateService;
 import com.ecommerce.domain.cart.CartItem;
 import com.ecommerce.domain.cart.exception.CartErrorCode;
 import com.ecommerce.domain.cart.exception.EmptyCartException;
@@ -13,18 +14,13 @@ import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
 import com.ecommerce.domain.point.exception.PointErrorCode;
 import com.ecommerce.domain.product.Product;
-import com.ecommerce.domain.product.exception.InsufficientStockException;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.user.User;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
-import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * US-ORD-001: 주문 생성
@@ -55,6 +50,7 @@ public class CreateOrderUseCase {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
+    private final RankingUpdateService rankingUpdateService;
 
     @MultiDistributedLock(keyProvider = "getOrderLockKeys(#userId)")
     @Transactional
@@ -63,7 +59,7 @@ public class CreateOrderUseCase {
         // 1. 장바구니 조회
         List<CartItem> cartItems = validateAndGetCartItems(userId);
 
-        // 2. 재고 차감 (비관적 락으로 동시성 제어)
+        // 2. 재고 차감
         Map<Long, Product> productMap = new HashMap<>();
         for (CartItem item : cartItems) {
             Product product = productRepository.findById(item.getProductId())
@@ -105,7 +101,7 @@ public class CreateOrderUseCase {
 
         long finalAmount = totalAmount - discountAmount;
 
-        // 6. 사용자 포인트 차감 (낙관적 락)
+        // 6. 사용자 포인트 차감
         User user = userRepository.findByIdOrThrow(userId);
 
         if (!user.hasPoint(finalAmount)) {
@@ -149,7 +145,12 @@ public class CreateOrderUseCase {
         pointHistoryRepository.save(pointHistory);
 
         // 11. 응답 생성
-        return OrderResponse.from(order, orderItems);
+        OrderResponse response = OrderResponse.from(order, orderItems);
+
+        // 12. @Async, 트랜잭션 NEW - Redis 랭킹 업데이트
+        rankingUpdateService.updateRanking(order.getId(), orderItems);
+
+        return response;
     }
 
     private List<CartItem> validateAndGetCartItems(Long userId) {

@@ -74,12 +74,12 @@ class ProductApiIntegrationTest extends TestContainerConfig {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.products", hasSize(3)))
-                .andExpect(jsonPath("$.data.products[0].name").exists())
-                .andExpect(jsonPath("$.data.products[0].price").exists())
-                .andExpect(jsonPath("$.data.products[0].stock").exists())
-                .andExpect(jsonPath("$.data.pagination.totalElements").value(3))
-                .andExpect(jsonPath("$.data.pagination.totalPages").value(1));
+                    .andExpect(jsonPath("$.data.products", hasSize(3)))
+                    .andExpect(jsonPath("$.data.products[0].name").exists())
+                    .andExpect(jsonPath("$.data.products[0].price").exists())
+                    .andExpect(jsonPath("$.data.products[0].stock").exists())
+                    .andExpect(jsonPath("$.data.pagination.totalElements").value(3))
+                    .andExpect(jsonPath("$.data.pagination.totalPages").value(1));
     }
 
     @Test

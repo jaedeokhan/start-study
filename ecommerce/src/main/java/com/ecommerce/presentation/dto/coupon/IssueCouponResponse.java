@@ -63,4 +63,21 @@ public record IssueCouponResponse (
             userCoupon.getEndDate()
         );
     }
+
+    public static IssueCouponResponse fromRedis(Long userId, Long couponEventId, CouponEvent couponEvent) {
+        return new IssueCouponResponse(
+                null,  // id: DB에 아직 저장 안됨
+                couponEventId,
+                userId,
+                couponEvent.getName(),
+                couponEvent.getDiscountType(),
+                couponEvent.getDiscountType() == DiscountType.AMOUNT ? couponEvent.getDiscountAmount() : null,
+                couponEvent.getDiscountType() == DiscountType.RATE ? couponEvent.getDiscountRate() : null,
+                couponEvent.getDiscountType() == DiscountType.RATE ? (long) couponEvent.getMaxDiscountAmount() : null,
+                CouponStatus.AVAILABLE,
+                LocalDateTime.now(),
+                null,
+                couponEvent.getEndDate()
+        );
+    }
 }
