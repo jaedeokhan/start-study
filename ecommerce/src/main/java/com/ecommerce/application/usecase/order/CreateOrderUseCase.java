@@ -9,6 +9,7 @@ import com.ecommerce.domain.coupon.CouponEvent;
 import com.ecommerce.domain.coupon.UserCoupon;
 import com.ecommerce.domain.order.Order;
 import com.ecommerce.domain.order.OrderItem;
+import com.ecommerce.domain.order.event.OrderCreatedEvent;
 import com.ecommerce.domain.point.PointHistory;
 import com.ecommerce.domain.point.TransactionType;
 import com.ecommerce.domain.point.exception.InsufficientPointException;
@@ -21,6 +22,7 @@ import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +53,7 @@ public class CreateOrderUseCase {
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final RankingUpdateService rankingUpdateService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @MultiDistributedLock(keyProvider = "getOrderLockKeys(#userId)")
     @Transactional
@@ -144,13 +147,17 @@ public class CreateOrderUseCase {
         );
         pointHistoryRepository.save(pointHistory);
 
-        // 11. 응답 생성
-        OrderResponse response = OrderResponse.from(order, orderItems);
-
-        // 12. @Async, 트랜잭션 NEW - Redis 랭킹 업데이트
+        // @Async - Redis 랭킹 업데이트
         rankingUpdateService.updateRanking(order.getId(), orderItems);
 
-        return response;
+        eventPublisher.publishEvent(new OrderCreatedEvent(
+                order.getId(),
+                order.getUserId(),
+                order.getFinalAmount(),
+                orderItems.stream().map(OrderItem::getId).toList()
+        ));
+
+        return OrderResponse.from(order, orderItems);
     }
 
     private List<CartItem> validateAndGetCartItems(Long userId) {
