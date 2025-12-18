@@ -1,4 +1,4 @@
-# KAFKA 기본 개념 학습
+# KAFKA 기본 개념 학습  및 설치
 
 ## KAFKA 주요 용어 간단 정리
 * topic: 메시지를 논리적으로 분류,저장하는 단위
@@ -74,3 +74,98 @@ Topic의 네이밍은 하단과 같이 지을려고 한다.
 ### 하나의 파티션에 여러개의 컨슈머가 붙을 수 없는 이유는?
 가장 중요한 이유는 순서(Order) 보장 때문이다.
 파티션은 큐와 같기에 데이터가 들어온 순서대로 쌓인다.
+
+## KRaft 설치(wsl2)
+
+### 설치 시 에러 정리
+1. bitnami/kafka 사용 시 latest 버전 및 잘못 명시 에러
+   * bitnami 대신 confluentinc 사용 변경
+```
+> docker-compose up -d
+Error response from daemon: manifest for bitnami/kafka:latest not found: manifest unknown: manifest unknown
+```
+
+2. KRaft 설치 시 yml 들여쓰기 에러 
+   * kafka-ui부분 들여쓰기 문제
+```
+> docker-compose up -d
+yaml: line 18: did not find expected key
+```
+
+### 설치 진행
+
+| 분류            | 값 | 설명                   |
+|---------------|--|----------------------|
+| KAFKA_NODE_ID | 1 | KAFKA 노드의 고유 식별자     |
+| KAFKA_PROCESS_ROLES | broker,controller | 브로커, 컨트롤러 역할 지정      |
+| KAFKA_CONTROLLER_QUORUM_VOTERS | 1@kafka:29093 | KRaft 컨트롤러 투표자 설정    |
+| KAFKA_LISTENERS | PLAINTEXT://kafka:9092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:29092 | KAFKA가 수신할 주소와 포트 설정 |
+| KAFKA_ADVERTISED_LISTENERS | PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092 | 클라이언트에게 공개할 리스너 주소   |
+| KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR | 1 | 오프셋 토픽 복제 팩터         |
+| KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR | 1 | 오프셋 토픽 복제 팩터         |
+| KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR | 1 | 트랜잭션 상태 로그 복제 팩터     |
+
+```yml
+services:
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:29092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CLUSTER_ID: 'ciWo7IWazngRchmPES6q5A=='
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+    kafka-ui:
+      image: provectuslabs/kafka-ui:latest
+      ports:
+        - "8080:8080"
+      environment:
+        KAFKA_CLUSTERS_0_NAME: local
+        KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      depends_on:
+        - kafka
+```
+
+### Kafka topic 생성 및 조회
+kafka 컨테이너 접근 및 kafka-topic 명령어로 topic 생성
+조회는 kakfa-topic --list로 조회
+
+```
+host> docker exec -it kafka-study-kafka-1 bash
+[appuser@517c2872818d ~]$ kafka-topics --create --topic hello-world --bootstrap-server kafka:9092 --partitions 1 --replication-factor 1
+Created topic hello-world.
+
+[appuser@517c2872818d ~]$ kafka-topics --list --bootstrap-server kafka:9092
+__consumer_offsets
+hello-world
+```
+
+### Kafka producer, consumer 테스트
+
+#### Kafka producer 메시지 발행
+kafka-console-producer를 통해서 
+
+```
+host> docker exec -it kafka-study-kafka-1 bash
+[appuser@517c2872818d ~]$ 
+[appuser@517c2872818d ~]$ kafka-console-producer --topic hello-world --bootstrap-server kafka:9092
+>hello
+```
+
+#### Kafka consumer 메시지 구독(소비)
+
+```
+host> docker exec -it kafka-study-kafka-1 bash
+[appuser@517c2872818d ~]$
+[appuser@517c2872818d ~]$ kafka-console-consumer --topic hello-world --bootstrap-server kafka:9092 --from-beginning
+hello
+```
