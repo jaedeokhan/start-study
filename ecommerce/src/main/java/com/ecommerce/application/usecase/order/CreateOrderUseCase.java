@@ -18,11 +18,11 @@ import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.exception.ProductErrorCode;
 import com.ecommerce.domain.product.exception.ProductNotFoundException;
 import com.ecommerce.domain.user.User;
+import com.ecommerce.infrastructure.kafka.producer.DataPlatformKafkaProducer;
 import com.ecommerce.infrastructure.repository.*;
 import com.ecommerce.presentation.dto.order.OrderResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,7 +53,7 @@ public class CreateOrderUseCase {
     private final OrderItemRepository orderItemRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final RankingUpdateService rankingUpdateService;
-    private final ApplicationEventPublisher eventPublisher;
+    private final DataPlatformKafkaProducer dataPlatformKafkaProducer;
 
     @MultiDistributedLock(keyProvider = "getOrderLockKeys(#userId)")
     @Transactional
@@ -150,7 +150,7 @@ public class CreateOrderUseCase {
         // @Async - Redis 랭킹 업데이트
         rankingUpdateService.updateRanking(order.getId(), orderItems);
 
-        eventPublisher.publishEvent(new OrderCreatedEvent(
+        dataPlatformKafkaProducer.sendOrderEvent(new OrderCreatedEvent(
                 order.getId(),
                 order.getUserId(),
                 order.getFinalAmount(),
