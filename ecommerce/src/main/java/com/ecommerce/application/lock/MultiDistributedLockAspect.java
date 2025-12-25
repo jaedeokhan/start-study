@@ -2,6 +2,7 @@ package com.ecommerce.application.lock;
 
 import com.ecommerce.application.lock.constant.LockConstants;
 import com.ecommerce.application.lock.exception.LockAcquisitionException;
+import com.ecommerce.domain.common.exception.BaseException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -130,6 +131,8 @@ public class MultiDistributedLockAspect {
 
             return joinPoint.proceed();
 
+        } catch (BaseException e) {
+            throw e;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error(

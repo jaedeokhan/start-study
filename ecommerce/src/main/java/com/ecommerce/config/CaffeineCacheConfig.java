@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class CaffeineCacheConfig {
 
     private static final String POPULAR_PRODUCTS_CACHE = "product:popular";
+    private static final String PRODUCT_DETAIL_CACHE = "product:detail";
     private static final int CACHE_MAX_SIZE = 10;
     private static final int CACHE_TTL_SECONDS = 30;
 
@@ -42,10 +43,22 @@ public class CaffeineCacheConfig {
                         .build()
         );
 
-        cacheManager.setCaches(List.of(popularProductsCache));
+        CaffeineCache productDetailCache = new CaffeineCache(
+                PRODUCT_DETAIL_CACHE,
+                Caffeine.newBuilder()
+                        .maximumSize(1_000)
+                        .expireAfterWrite(CACHE_TTL_SECONDS, TimeUnit.SECONDS)
+                        .build()
+        );
 
-        log.info("Caffeine 로컬 캐시 초기화 완료 - cache: {}, TTL: {}초",
+        cacheManager.setCaches(List.of(
+                popularProductsCache,
+                productDetailCache
+        ));
+        log.info("로컬 캐시 초기화 완료 - cache: {}, TTL: {}초",
                 POPULAR_PRODUCTS_CACHE, CACHE_TTL_SECONDS);
+        log.info("로컬 캐시 초기화 완료 - cache: {}, TTL: {}초",
+                PRODUCT_DETAIL_CACHE, CACHE_TTL_SECONDS);
 
         return cacheManager;
     }
